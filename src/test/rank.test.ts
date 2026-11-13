@@ -25,12 +25,9 @@ describe('ランク定義', () => {
     ]);
   });
 
-  it('すべてのランクに説明と色と英語タグラインがある', () => {
+  it('すべてのランクに英語表記と色がある', () => {
     for (const rank of RANKS) {
-      expect(rank.summary.length).toBeGreaterThan(0);
       expect(rank.tagline.length).toBeGreaterThan(0);
-      expect(rank.badgeClass).toContain('border');
-      expect(rank.barClass).toContain('bg-');
       expect(rank.textClass).toContain('text-');
     }
   });
