@@ -3,6 +3,7 @@ import { RankBadge } from '../components/RankBadge';
 import { Stamp } from '../components/Stamp';
 import type { GameStats } from '../game/engine';
 import { formatDateTime, formatSimilarity, formatStats } from '../game/format';
+import type { MixMode } from '../game/difficulty';
 import type { BestRecord } from '../game/storage';
 import type { GameState } from '../game/types';
 
@@ -13,9 +14,11 @@ type Props = {
   game: GameState;
   stats: GameStats;
   bestForThisSet: BestRecord | undefined;
-  bestOverall: BestRecord | undefined;
+  /** 同じ文字数帯でのベスト */
+  bestInMix: BestRecord | undefined;
+  mix: MixMode;
+  mixLabel: string;
   newBest: BestRecord | null;
-  rulesVersion: string;
   /** このプレイで使ったセットのシード */
   seed: string | null;
   /** 計測と同じクロック（テストで差し替え可能） */
@@ -30,9 +33,10 @@ export function ResultScreen({
   game,
   stats,
   bestForThisSet,
-  bestOverall,
+  bestInMix,
+  mix,
+  mixLabel,
   newBest,
-  rulesVersion,
   seed,
   now,
   onRetrySameSet,
@@ -138,17 +142,19 @@ export function ResultScreen({
               </dd>
             </div>
             <div className="flex items-baseline justify-between gap-3">
-              <dt className="text-ink-2">ルール {rulesVersion} 全体</dt>
-              <dd className="font-mono text-sm font-bold tabular-nums">
-                {bestOverall ? `${(bestOverall.bestMs / 1000).toFixed(2)}秒` : '—'}
+              <dt className="text-ink-2">{mixLabel}</dt>
+              <dd className="font-mono text-sm font-bold tabular-nums" data-testid="best-in-mix">
+                {bestInMix ? `${(bestInMix.bestMs / 1000).toFixed(2)}秒` : '—'}
               </dd>
             </div>
           </dl>
-          {bestOverall ? (
-            <p className="mt-2 text-note text-ink-3">{formatDateTime(bestOverall.achievedAt)} の記録</p>
+          {bestInMix ? (
+            <p className="mt-2 text-note text-ink-3">{formatDateTime(bestInMix.achievedAt)} の記録</p>
           ) : null}
-          <p className="mt-3 text-note text-ink-3">
-            称号は文字/秒で決まります。
+          <p className="mt-3 text-note leading-relaxed text-ink-3">
+            {mix === 'mixed'
+              ? '「混ぜる」は問題の長さが揃わないため、参考値です。長さを選ぶと比べられます。'
+              : `「${mixLabel}」は問題の長さが揃っているので、この値で比べられます。`}
           </p>
         </div>
       </div>

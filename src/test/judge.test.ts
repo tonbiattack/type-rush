@@ -22,8 +22,11 @@ import {
   totalAcceptedCharacters,
 } from '../game/engine';
 import {
+  MAX_RECORDS,
+  bestByMix,
   emptyStore,
   findBest,
+  findBestByMix,
   parseStore,
   problemSetSignature,
   saveIfBest,
@@ -385,6 +388,7 @@ describe('自己ベストの保存', () => {
 
     const first = saveIfBest(storage, {
       problemIds: ids,
+      mix: 'short',
       elapsedMs: 5000,
       averageSimilarity: 0.9,
       charactersPerSecond: 4,
@@ -392,26 +396,28 @@ describe('自己ベストの保存', () => {
     });
     expect(first.updatedSet).toBe(true);
     expect(first.best.bestMs).toBe(5000);
-    expect(first.isNewOverallBest).toBe(true);
+    expect(first.isNewMixBest).toBe(true);
 
     const slower = saveIfBest(storage, {
       problemIds: ids,
+      mix: 'short',
       elapsedMs: 7000,
       averageSimilarity: 0.95,
       charactersPerSecond: 3,
     });
     expect(slower.updatedSet).toBe(false);
     expect(slower.best.bestMs).toBe(5000);
-    expect(slower.isNewOverallBest).toBe(false);
+    expect(slower.isNewMixBest).toBe(false);
 
     const faster = saveIfBest(storage, {
       problemIds: ids,
+      mix: 'short',
       elapsedMs: 4000,
       averageSimilarity: 0.88,
       charactersPerSecond: 5,
     });
     expect(faster.updatedSet).toBe(true);
-    expect(faster.isNewOverallBest).toBe(true);
+    expect(faster.isNewMixBest).toBe(true);
 
     const store = parseStore(storage.getItem('type-rush:bests:v1'));
     expect(store.records).toHaveLength(1);
@@ -461,6 +467,107 @@ describe('自己ベストの保存', () => {
     });
     const store: BestStore = parseStore(broken);
     expect(store.records).toHaveLength(1);
+  });
+
+  it('文字数帯ごとにベストを出す', () => {
+    const storage = memoryStorage();
+
+    // 短い問題のセットは速い、長い問題のセットは遅い
+    saveIfBest(storage, {
+      problemIds: ['a', 'b'],
+      mix: 'short',
+      elapsedMs: 4000,
+      averageSimilarity: 0.9,
+      charactersPerSecond: 5,
+    });
+    saveIfBest(storage, {
+      problemIds: ['c', 'd'],
+      mix: 'long',
+      elapsedMs: 12000,
+      averageSimilarity: 0.9,
+      charactersPerSecond: 3,
+    });
+
+    const store = parseStore(storage.getItem('type-rush:bests:v1'));
+    expect(bestByMix(store).short?.bestMs).toBe(4000);
+    expect(bestByMix(store).long?.bestMs).toBe(12000);
+    expect(bestByMix(store).medium).toBeUndefined();
+  });
+
+  it('同じ帯の中だけを比べてベストを更新する', () => {
+    const storage = memoryStorage();
+
+    const shortFirst = saveIfBest(storage, {
+      problemIds: ['a', 'b'],
+      mix: 'short',
+      elapsedMs: 4000,
+      averageSimilarity: 0.9,
+      charactersPerSecond: 5,
+    });
+    expect(shortFirst.isNewMixBest).toBe(true);
+
+    // 帯が違えば、速くても「短めのベスト」は更新しない
+    const longFaster = saveIfBest(storage, {
+      problemIds: ['c', 'd'],
+      mix: 'long',
+      elapsedMs: 3000,
+      averageSimilarity: 0.9,
+      charactersPerSecond: 8,
+    });
+    expect(longFaster.isNewMixBest).toBe(true);
+
+    const store = parseStore(storage.getItem('type-rush:bests:v1'));
+    expect(findBestByMix(store, 'short')?.bestMs).toBe(4000);
+    expect(findBestByMix(store, 'long')?.bestMs).toBe(3000);
+  });
+
+  it('記録が上限を超えたら古いものから捨てる', () => {
+    const storage = memoryStorage();
+
+    for (let index = 0; index < MAX_RECORDS + 30; index += 1) {
+      saveIfBest(storage, {
+        problemIds: [`p${index}`, 'x'],
+        mix: 'medium',
+        elapsedMs: 5000 + index,
+        averageSimilarity: 0.9,
+        charactersPerSecond: 4,
+      });
+    }
+
+    const store = parseStore(storage.getItem('type-rush:bests:v1'));
+    // 直近200件 + 帯のベストのみ残る
+    expect(store.records.length).toBeLessThanOrEqual(MAX_RECORDS + 4);
+    expect(store.records.length).toBeLessThan(MAX_RECORDS + 30);
+
+    // 直近の記録は残っている
+    expect(findBest(store, problemSetSignature([`p${MAX_RECORDS + 29}`, 'x']))).toBeTruthy();
+    // 中ほど（直近でも帯のベストでもない）記録は捨てられている
+    expect(findBest(store, problemSetSignature(['p10', 'x']))).toBeUndefined();
+  });
+
+  it('上限を超えても各帯のベストは残る', () => {
+    const storage = memoryStorage();
+
+    saveIfBest(storage, {
+      problemIds: ['keep', 'x'],
+      mix: 'short',
+      elapsedMs: 1000,
+      averageSimilarity: 1,
+      charactersPerSecond: 9,
+    });
+
+    for (let index = 0; index < MAX_RECORDS + 30; index += 1) {
+      saveIfBest(storage, {
+        problemIds: [`q${index}`, 'y'],
+        mix: 'long',
+        elapsedMs: 9000 + index,
+        averageSimilarity: 0.9,
+        charactersPerSecond: 2,
+      });
+    }
+
+    const store = parseStore(storage.getItem('type-rush:bests:v1'));
+    expect(findBestByMix(store, 'short')?.bestMs).toBe(1000);
   });
 
   it('保存できないストレージでも落ちない', () => {

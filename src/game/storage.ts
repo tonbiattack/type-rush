@@ -1,3 +1,4 @@
+import type { MixMode } from './difficulty';
 import { RULES_VERSION } from './judge';
 
 export type BestRecord = {
@@ -7,6 +8,8 @@ export type BestRecord = {
   problemIds: string[];
   /** そのセットを選んだシード。同じセットを再現するのに使う */
   seed?: string;
+  /** 出題した文字数帯。ベストを帯ごとに比べるために保存する */
+  mix?: MixMode;
   bestMs: number;
   averageSimilarity: number;
   charactersPerSecond: number;
@@ -21,6 +24,33 @@ export type BestStore = {
 const STORAGE_KEY = 'type-rush:bests:v1';
 const STORE_VERSION = 1 as const;
 
+/**
+ * 保存する記録の上限。
+ * 問題セットは事実上無限に作れるので、放っておくと localStorage を圧迫する。
+ * 直近 MAX_RECORDS 件に加えて、各文字数帯のベストだけは残す
+ * （消すと表示中のベストが突然「記録なし」になる）。
+ */
+export const MAX_RECORDS = 200;
+
+function trimRecords(records: BestRecord[]): BestRecord[] {
+  if (records.length <= MAX_RECORDS) return records;
+
+  // 帯ごとの最速レコードは残す
+  const keep = new Set<BestRecord>();
+  for (const record of records) {
+    if (!record.mix) continue;
+    const current = [...keep].find((item) => item.mix === record.mix);
+    if (!current || record.bestMs < current.bestMs) {
+      keep.delete(current as BestRecord);
+      keep.add(record);
+    }
+  }
+
+  const recent = records.slice(records.length - MAX_RECORDS);
+  const seen = new Set<BestRecord>([...keep, ...recent]);
+  return records.filter((record) => seen.has(record));
+}
+
 export function problemSetSignature(problemIds: string[]): string {
   return `${RULES_VERSION}::${[...problemIds].sort().join(',')}`;
 }
@@ -32,6 +62,12 @@ export function emptyStore(): BestStore {
 function isBestRecord(value: unknown): value is BestRecord {
   if (typeof value !== 'object' || value === null) return false;
   const record = value as Record<string, unknown>;
+  const mixValid =
+    record.mix === undefined ||
+    record.mix === 'short' ||
+    record.mix === 'medium' ||
+    record.mix === 'long' ||
+    record.mix === 'mixed';
   return (
     typeof record.rulesVersion === 'string' &&
     typeof record.signature === 'string' &&
@@ -42,7 +78,8 @@ function isBestRecord(value: unknown): value is BestRecord {
     record.bestMs >= 0 &&
     typeof record.averageSimilarity === 'number' &&
     typeof record.charactersPerSecond === 'number' &&
-    typeof record.achievedAt === 'string'
+    typeof record.achievedAt === 'string' &&
+    mixValid
   );
 }
 
@@ -59,9 +96,11 @@ export function parseStore(raw: string | null): BestStore {
       return emptyStore();
     }
 
-    const records = store.records
-      .filter(isBestRecord)
-      .filter((record) => record.rulesVersion === RULES_VERSION);
+    const records = trimRecords(
+      store.records
+        .filter(isBestRecord)
+        .filter((record) => record.rulesVersion === RULES_VERSION),
+    );
 
     return { version: STORE_VERSION, records };
   } catch {
@@ -80,16 +119,41 @@ export function fastestBest(store: BestStore): BestRecord | undefined {
   return [...store.records].sort((a, b) => a.bestMs - b.bestMs)[0];
 }
 
+/**
+ * 文字数帯ごとの最速記録。
+ * 帯を固定すると問題の長さが揃うので、この値は実力の比較に使える。
+ * 「全記録の最速」は短い問題が揃ったセットが必ず勝つため、表示に使わない。
+ */
+export function bestByMix(store: BestStore): Partial<Record<MixMode, BestRecord>> {
+  const result: Partial<Record<MixMode, BestRecord>> = {};
+
+  for (const record of store.records) {
+    const mix = record.mix;
+    if (!mix) continue;
+    const current = result[mix];
+    if (!current || record.bestMs < current.bestMs) {
+      result[mix] = record;
+    }
+  }
+
+  return result;
+}
+
+/** 指定した帯の最速記録 */
+export function findBestByMix(store: BestStore, mix: MixMode): BestRecord | undefined {
+  return bestByMix(store)[mix];
+}
+
 export type SaveOutcome = {
   store: BestStore;
   /** この問題セットでのベスト */
   best: BestRecord;
-  /** ルールバージョン全体での最速記録 */
-  fastest: BestRecord;
+  /** 同じ文字数帯でのベスト（比較に使える値） */
+  bestInMix: BestRecord;
   /** この問題セットの記録を更新したか */
   updatedSet: boolean;
-  /** ルールバージョン全体の最速記録を更新したか */
-  isNewOverallBest: boolean;
+  /** 同じ文字数帯のベストを更新したか */
+  isNewMixBest: boolean;
 };
 
 /**
@@ -102,6 +166,8 @@ export function saveIfBest(
     problemIds: string[];
     /** 問題を選んだシード（再挑戦で同じセットを再現するため） */
     seed?: string;
+    /** 出題した文字数帯（ベストを帯ごとに比べるため） */
+    mix?: MixMode;
     elapsedMs: number;
     averageSimilarity: number;
     charactersPerSecond: number;
@@ -111,13 +177,14 @@ export function saveIfBest(
   const signature = problemSetSignature(input.problemIds);
   const stored = readStore(storage);
   const previous = findBest(stored, signature);
-  const previousFastest = fastestBest(stored);
+  const previousInMix = input.mix ? findBestByMix(stored, input.mix) : undefined;
 
   const record: BestRecord = {
     rulesVersion: RULES_VERSION,
     signature,
     problemIds: [...input.problemIds],
     seed: input.seed,
+    mix: input.mix,
     bestMs: input.elapsedMs,
     averageSimilarity: input.averageSimilarity,
     charactersPerSecond: input.charactersPerSecond,
@@ -125,19 +192,22 @@ export function saveIfBest(
   };
 
   const updatedSet = !previous || record.bestMs < previous.bestMs;
-  const isNewOverallBest = !previousFastest || record.bestMs < previousFastest.bestMs;
+  const isNewMixBest = !previousInMix || record.bestMs < previousInMix.bestMs;
 
   if (!updatedSet && previous) {
     return {
       store: stored,
       best: previous,
-      fastest: previousFastest ?? previous,
+      bestInMix: previousInMix ?? previous,
       updatedSet: false,
-      isNewOverallBest: false,
+      isNewMixBest: false,
     };
   }
 
-  const records = [...stored.records.filter((item) => item.signature !== signature), record];
+  const records = trimRecords([
+    ...stored.records.filter((item) => item.signature !== signature),
+    record,
+  ]);
   const next: BestStore = { version: STORE_VERSION, records };
 
   try {
@@ -149,9 +219,9 @@ export function saveIfBest(
   return {
     store: next,
     best: record,
-    fastest: isNewOverallBest ? record : (previousFastest ?? record),
+    bestInMix: isNewMixBest ? record : (previousInMix ?? record),
     updatedSet: true,
-    isNewOverallBest,
+    isNewMixBest,
   };
 }
 

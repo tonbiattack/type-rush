@@ -3,7 +3,8 @@ import { DIFFICULTY_LABELS, type Difficulty, type MixMode } from '../game/diffic
 import { formatDateTime } from '../game/format';
 import type { BestRecord } from '../game/storage';
 type Props = {
-  best: BestRecord | undefined;
+  /** 文字数帯ごとのベスト */
+  bestsByMix: Partial<Record<MixMode, BestRecord>>;
   rulesVersion: string;
   problemCount: number;
   mix: MixMode;
@@ -14,7 +15,7 @@ type Props = {
 };
 
 export function StartScreen({
-  best,
+  bestsByMix,
   rulesVersion,
   problemCount,
   mix,
@@ -24,6 +25,7 @@ export function StartScreen({
   onStart,
 }: Props) {
   const options: MixMode[] = [...difficulties, 'mixed'];
+  const best = bestsByMix[mix];
 
   return (
     <section aria-labelledby="start-heading" className="flex flex-1 flex-col justify-center py-6">
@@ -91,7 +93,7 @@ export function StartScreen({
 
         {best ? (
           <p className="text-xs text-ink-2" data-testid="start-best">
-            自己ベスト{' '}
+            {mixLabels[mix]}の自己ベスト{' '}
             <span className="font-mono text-sm font-bold tabular-nums text-ink">
               {(best.bestMs / 1000).toFixed(2)}
             </span>{' '}
@@ -99,7 +101,9 @@ export function StartScreen({
             <span className="ml-2 text-ink-3">{formatDateTime(best.achievedAt)}</span>
           </p>
         ) : (
-          <p className="text-xs text-ink-3">まだ記録がありません。</p>
+          <p className="text-xs text-ink-3" data-testid="start-best">
+            {mixLabels[mix]}の記録はまだありません。
+          </p>
         )}
       </div>
 

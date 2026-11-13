@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      /*
+        1200x630 の OGP 画像を書き出すためのテンプレート。
+        ブラウザのページズーム（この環境では 0.9）に左右されないよう、
+        #og を scale(1/zoom) してから要素スクリーンショットを撮る。
+      */
+      * {
+        box-sizing: border-box;
+        margin: 0;
+      }
+      html,
+      body {
+        background: #f0f1ed;
+      }
+      #og {
+        width: 1200px;
+        height: 630px;
+        background: #f0f1ed;
+        color: #151a1e;
+        font-family: 'Hiragino Kaku Gothic ProN', 'Yu Gothic UI', 'Noto Sans JP', sans-serif;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 64px 72px 64px 96px;
+        position: relative;
+        transform: scale(var(--og-scale, 1));
+        transform-origin: top left;
+      }
+      #og::before {
+        content: '';
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 24px;
+        background: #cf3a1a;
+      }
+      .top {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        border-bottom: 3px solid #151a1e;
+        padding-bottom: 18px;
+      }
+      .name {
+        font-size: 34px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+      }
+      .meta {
+        font-family: ui-monospace, monospace;
+        font-size: 20px;
+        color: #6d777d;
+      }
+      h1 {
+        font-size: 72px;
+        font-weight: 700;
+        line-height: 1.26;
+        letter-spacing: -0.02em;
+        margin-top: 30px;
+      }
+      .lead {
+        margin-top: 26px;
+        font-size: 25px;
+        line-height: 1.7;
+        color: #39424a;
+        max-width: 940px;
+      }
+      .bottom {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 40px;
+      }
+      .prompt {
+        border-left: 6px solid #cf3a1a;
+        padding: 6px 0 6px 22px;
+        font-size: 30px;
+        line-height: 1.5;
+      }
+      .stamp {
+        flex: none;
+        border: 5px solid #cf3a1a;
+        color: #cf3a1a;
+        padding: 16px 26px;
+        font-size: 46px;
+        font-weight: 700;
+        transform: rotate(-7deg);
+        white-space: nowrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="og">
+      <div class="top">
+        <p class="name">Type Rush</p>
+        <p class="meta">5問 / ルール mvp-1</p>
+      </div>
+
+      <div>
+        <h1>お題を打って、<br />Enter で次へ</h1>
+        <p class="lead">
+          AIへの指示風のひらがな短文を5問。85%以上一致していれば合格で次の問題へ。
+          誤字を直した時間も合計タイムに含まれます。
+        </p>
+      </div>
+
+      <div class="bottom">
+        <p class="prompt">このぶんをよんでかんたんにまとめてください</p>
+        <p class="stamp">AIの神</p>
+      </div>
+    </div>
+  </body>
+</html>
