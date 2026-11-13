@@ -1,0 +1,54 @@
+name: Deploy
+
+# 公開はまだ行わない。準備だけしておき、必要なときに手動で実行する。
+# GitHub Pages を使う場合、リポジトリが private だと Pro 以上が必要。
+# 手順は README の「公開」を参照。
+on:
+  workflow_dispatch:
+    inputs:
+      site_url:
+        description: '公開URL（例: https://owner.github.io/type-rush）。og:image の絶対URLに使う'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同時に複数のデプロイが走らないようにする
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run check:problems
+      - run: npm test
+      - name: Build
+        env:
+          SITE_URL: ${{ inputs.site_url }}
+        run: npm run build
+      - run: npm run check:bundle
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
