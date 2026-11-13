@@ -3,6 +3,8 @@
 5問のひらがな短文を入力し、クリアまでの時間を計測するブラウザ向けタイピングゲームです。
 85% 以上一致していれば次の問題へ進めます。
 
+**遊ぶ: https://tonbiattack.github.io/type-rush/**
+
 - 5問のひらがな短文を、最速でクリアするまでの時間を競います。
 - お題は「AIへの指示」でありそうな文が中心（「このぶんをまとめてください」など）。
 - 誤字があっても入力は止まりません。不合格ならその場で直して再提出できます。
@@ -43,20 +45,18 @@ npm run ogp
 
 ## 公開
 
-公開用のワークフロー `.github/workflows/deploy.yml` を用意してありますが、
-**まだ公開はしていません**。必要なときに手動実行してください。
+GitHub Pages で公開しています: https://tonbiattack.github.io/type-rush/
 
-前提として、次のどちらかを選ぶ必要があります。
+- ホスティング: GitHub Pages（リポジトリは public）
+- デプロイ: `.github/workflows/deploy.yml` を **手動実行**（`workflow_dispatch`）
+- `site_url` に公開URLを渡すと、OGP の `og:image` が絶対URLになります
 
-- GitHub Pages を使う: private リポジトリでは Pro 以上が必要。無料枠なら public にする。
-- Cloudflare Pages などを使う: private リポジトリのまま公開できる。
+再デプロイするときは Actions → Deploy → Run workflow を実行し、
+`site_url` に `https://tonbiattack.github.io/type-rush` を入れてください。
+`main` への push では自動デプロイしません（意図しない公開を避けるため）。
 
-GitHub Pages で公開する手順:
-
-1. リポジトリを public にする（または Pro に加入する）
-2. Settings → Pages → Source を **GitHub Actions** にする
-3. Actions → Deploy → Run workflow を実行し、`site_url` に公開URLを入れる
-4. 公開URLで動作確認する（初回表示、5問クリア、リロード後のベスト保持）
+別のホスティング（Cloudflare Pages など）に移す場合も、`npm run build` の
+出力をそのまま置けば動作します。
 
 ## 遊び方
 
