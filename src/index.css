@@ -2,13 +2,15 @@
 
 @theme {
   --color-paper: #f0f1ed;
-  --color-paper-2: #e6e8e2;
   --color-ink: #151a1e;
   --color-ink-2: #39424a;
   --color-ink-3: #6d777d;
   --color-rule: #c8ccc6;
   --color-shu: #cf3a1a;
-  --color-shu-wash: #f7e4dd;
+
+  /* 補助文字のサイズ。直値の text-[11px] を各所に書かない。 */
+  --text-note: 0.6875rem;
+  --text-note--line-height: 1.65;
 
   --font-sans:
     'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic UI', 'Noto Sans JP', system-ui,

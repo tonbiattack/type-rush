@@ -54,7 +54,7 @@ export function PlayScreen({
           <span className="font-mono text-xs"> / {total}</span>
         </p>
         <p className="text-right">
-          <span className="mr-1.5 align-middle text-[11px] text-ink-3">経過</span>
+          <span className="mr-1.5 align-middle text-note text-ink-3">経過</span>
           <span
             className="font-mono text-2xl font-bold tabular-nums sm:text-3xl"
             data-testid="elapsed"
@@ -114,7 +114,7 @@ export function PlayScreen({
           placeholder="お題を入力して Enter"
         />
 
-        <p id="answer-help" className="mt-2 text-[11px] leading-relaxed text-ink-3">
+        <p id="answer-help" className="mt-2 text-note text-ink-3">
           誤字は気にせず、速く。Enter で判定、不合格ならそのまま直して再提出できます。貼り付けは使えません。
         </p>
 

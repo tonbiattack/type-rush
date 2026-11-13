@@ -26,7 +26,7 @@ export function RankBadge({ charactersPerSecond }: Props) {
         >
           {rank.label}
         </h3>
-        <p className="font-mono text-[11px] tracking-[0.08em] text-ink-3">{rank.tagline}</p>
+        <p className="font-mono text-note text-ink-3">{rank.tagline}</p>
       </div>
 
       <div
