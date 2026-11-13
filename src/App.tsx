@@ -197,18 +197,20 @@ export default function App({
     : undefined;
 
   return (
-    <div className="min-h-dvh bg-slate-950 text-slate-100">
-      <div className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col px-4 py-6 sm:px-6 sm:py-10">
-        <header className="mb-6 flex flex-wrap items-baseline justify-between gap-2">
-          <h1 className="text-xl font-black tracking-tight sm:text-2xl">
-            Type <span className="text-sky-400">Rush</span>
-          </h1>
-          <p className="text-xs text-slate-400">
-            ルール {RULES_VERSION} / {problemsPerGame}問クリアのタイムを競う
+    <div className="min-h-dvh bg-paper text-ink">
+      {/* 紙の端を思わせる上下の罫線だけ。影も角丸も使わない。 */}
+      <div className="mx-auto flex min-h-dvh w-full max-w-[46rem] flex-col border-x border-rule px-5 pb-10 pt-7 sm:px-9 sm:pt-9">
+        <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-ink pb-2.5">
+          <p className="text-lg font-bold tracking-tight">
+            Type Rush
+            <span className="ml-2 text-xs font-normal text-ink-3">速く伝えるタイピング</span>
+          </p>
+          <p className="font-mono text-[11px] text-ink-3">
+            {problemsPerGame}問 / ルール {RULES_VERSION}
           </p>
         </header>
 
-        <main className="flex flex-1 flex-col">
+        <main className="flex flex-1 flex-col justify-center pt-8">
           {game === null || game.status === 'idle' ? (
             <StartScreen
               best={bestForRuleVersion}
@@ -250,9 +252,9 @@ export default function App({
           ) : null}
         </main>
 
-        <footer className="mt-8 text-xs leading-relaxed text-slate-500">
+        <footer className="mt-12 border-t border-rule pt-3 text-[11px] leading-relaxed text-ink-3">
           <p>
-            MVPの判定は文字列の近さ（Levenshtein距離）による暫定ルールです。意味を理解した判定ではありません。
+            判定は文字列の近さ（Levenshtein 距離）による暫定ルールで、意味を理解した判定ではありません。
           </p>
           <p>記録はこのブラウザの localStorage にのみ保存されます。</p>
         </footer>
