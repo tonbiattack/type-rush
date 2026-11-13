@@ -34,5 +34,13 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+
+    <!-- Cloudflare Web Analytics: 訪問状況のみ計測し、個人情報は送信しません -->
+    <script
+      type="module"
+      src="https://static.cloudflareinsights.com/beacon.min.js"
+      data-cf-beacon='{"token":"40f6263ac64f42bb85503470e58a4ceb"}'
+    ></script>
+    <!-- End Cloudflare Web Analytics -->
   </body>
 </html>
