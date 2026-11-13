@@ -41,6 +41,23 @@ SITE_URL=https://example.github.io/type-rush npm run build
 npm run ogp
 ```
 
+## 公開
+
+公開用のワークフロー `.github/workflows/deploy.yml` を用意してありますが、
+**まだ公開はしていません**。必要なときに手動実行してください。
+
+前提として、次のどちらかを選ぶ必要があります。
+
+- GitHub Pages を使う: private リポジトリでは Pro 以上が必要。無料枠なら public にする。
+- Cloudflare Pages などを使う: private リポジトリのまま公開できる。
+
+GitHub Pages で公開する手順:
+
+1. リポジトリを public にする（または Pro に加入する）
+2. Settings → Pages → Source を **GitHub Actions** にする
+3. Actions → Deploy → Run workflow を実行し、`site_url` に公開URLを入れる
+4. 公開URLで動作確認する（初回表示、5問クリア、リロード後のベスト保持）
+
 ## 遊び方
 
 1. スタート画面で「スタート」（Enter でも可）。
