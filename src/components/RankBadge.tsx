@@ -15,14 +15,17 @@ export function RankBadge({ charactersPerSecond, showProgress = true }: Props) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">タイピングレベル</p>
-          <p className="mt-1 flex items-baseline gap-2">
+          <p className="mt-1 flex flex-wrap items-baseline gap-2">
             <span
               className={`inline-block rounded-xl border px-4 py-1 text-3xl font-black leading-tight ${rank.badgeClass}`}
               data-testid="rank-label"
             >
               {rank.label}
             </span>
-            <span className="text-sm text-slate-400 tabular-nums">
+            <span className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+              {rank.tagline}
+            </span>
+            <span className="text-sm tabular-nums text-slate-400">
               {charactersPerSecond.toFixed(1)}文字/秒
             </span>
           </p>
@@ -46,9 +49,14 @@ export function RankBadge({ charactersPerSecond, showProgress = true }: Props) {
             />
           </div>
           <p className="mt-2 text-xs text-slate-400" data-testid="rank-next">
-            {next
-              ? `あと ${remainingCps.toFixed(1)}文字/秒で「${next.label}」`
-              : '最高ランク「神」に到達しています。'}
+            {next ? (
+              <>
+                あと <span className="font-bold text-slate-200">{remainingCps.toFixed(1)}文字/秒</span>
+                {' '}で「{next.label}」
+              </>
+            ) : (
+              <>最高ランク「{rank.label}」に到達しています。</>
+            )}
           </p>
         </div>
       ) : null}

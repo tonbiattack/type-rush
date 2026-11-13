@@ -51,7 +51,9 @@ export function ResultScreen({
             自己ベスト更新！
           </p>
         ) : null}
-        <p className="mt-2 text-xs text-slate-400">速さ（文字/秒）でタイピングレベルを判定します。</p>
+        <p className="mt-2 text-xs text-slate-400">
+          速さ（文字/秒）で AI 時代のタイピングレベルを判定します。
+        </p>
       </div>
 
       <RankBadge charactersPerSecond={stats.charactersPerSecond} />
