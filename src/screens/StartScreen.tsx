@@ -24,16 +24,14 @@ export function StartScreen({ best, rulesVersion, problemCount, onStart }: Props
 
       <h2
         id="start-heading"
-        className="mt-8 text-3xl font-bold leading-[1.25] tracking-tight sm:text-[2.6rem]"
+        className="mt-8 text-3xl font-bold leading-[1.3] tracking-tight sm:text-[2.4rem]"
       >
-        一字一句より、
-        <br />
-        とにかく速く伝える。
+        お題を打って、Enter で次へ
       </h2>
 
       <p className="mt-4 max-w-[38rem] text-sm leading-[1.9] text-ink-2">
-        {problemCount}問のひらがな短文を、誤字を気にせず最速でクリアします。
-        Enter で判定し、85% 以上伝わっていれば次へ。直す時間もタイムに含まれます。
+        AIへの指示風のひらがな短文が{problemCount}問出ます。85%以上一致していれば合格で次の問題へ。
+        誤字を直した時間も合計タイムに含まれます。
       </p>
 
       <div className="mt-7">

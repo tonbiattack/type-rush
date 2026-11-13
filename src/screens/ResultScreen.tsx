@@ -141,7 +141,7 @@ export function ResultScreen({
             <p className="mt-2 text-[11px] text-ink-3">{formatDateTime(bestOverall.achievedAt)} の記録</p>
           ) : null}
           <p className="mt-3 text-[11px] leading-relaxed text-ink-3">
-            称号は速さ（文字/秒）で決まります。誤字は減点しません。
+            称号は文字/秒で決まります。
           </p>
         </div>
       </div>
