@@ -12,29 +12,23 @@ type Props = {
 export function StartScreen({ best, rulesVersion, problemCount, onStart }: Props) {
   return (
     <section aria-labelledby="start-heading" className="flex flex-1 flex-col justify-center py-6">
-      {/* ヒーローは「伝える速さ」という数字ではなく、お題そのものの見本。 */}
-      <p className="font-mono text-[11px] tracking-[0.06em] text-ink-3">
-        お題の例
-      </p>
-      <p className="mt-2 border-l-2 border-shu pl-3 text-xl leading-relaxed text-ink sm:text-2xl">
-        このぶんをよんで
-        <br className="sm:hidden" />
-        かんたんにまとめてください
-      </p>
-
-      <h2
-        id="start-heading"
-        className="mt-8 text-3xl font-bold leading-[1.3] tracking-tight sm:text-[2.4rem]"
-      >
-        お題を打って、Enter で次へ
+      <h2 id="start-heading" className="text-xl font-bold tracking-tight">
+        {problemCount}問のタイピング
       </h2>
 
-      <p className="mt-4 max-w-[38rem] text-sm leading-[1.9] text-ink-2">
+      <p className="mt-3 max-w-[38rem] text-sm leading-[1.9] text-ink-2">
         AIへの指示風のひらがな短文が{problemCount}問出ます。85%以上一致していれば合格で次の問題へ。
         誤字を直した時間も合計タイムに含まれます。
       </p>
 
-      <div className="mt-7">
+      <figure className="mt-6">
+        <blockquote className="border-l-2 border-shu py-1 pl-3 text-lg leading-relaxed text-ink sm:text-xl">
+          このぶんをよんでかんたんにまとめてください
+        </blockquote>
+        <figcaption className="mt-1.5 pl-3 text-[11px] text-ink-3">お題の例</figcaption>
+      </figure>
+
+      <div className="mt-6 flex flex-wrap items-baseline gap-x-6 gap-y-2">
         <button
           type="button"
           onClick={onStart}
@@ -42,25 +36,25 @@ export function StartScreen({ best, rulesVersion, problemCount, onStart }: Props
             if (event.key === 'Enter' && event.repeat) event.preventDefault();
           }}
           autoFocus
-          className="group inline-flex w-full items-baseline justify-between gap-6 border-2 border-ink bg-ink px-5 py-3.5 text-left text-paper transition-colors hover:bg-shu hover:border-shu sm:w-auto sm:min-w-[15rem]"
+          className="inline-flex w-full items-baseline justify-between gap-6 border-2 border-ink bg-ink px-5 py-3.5 text-left text-paper transition-colors hover:border-shu hover:bg-shu sm:w-auto sm:min-w-[15rem]"
         >
           <span className="text-lg font-bold">スタート</span>
           <span className="font-mono text-[11px] opacity-70">Enter</span>
         </button>
-      </div>
 
-      {best ? (
-        <p className="mt-3 text-xs text-ink-2" data-testid="start-best">
-          自己ベスト{' '}
-          <span className="font-mono text-sm font-bold tabular-nums text-ink">
-            {(best.bestMs / 1000).toFixed(2)}
-          </span>{' '}
-          秒
-          <span className="ml-2 text-ink-3">{formatDateTime(best.achievedAt)}</span>
-        </p>
-      ) : (
-        <p className="mt-3 text-xs text-ink-3">まだ記録がありません。</p>
-      )}
+        {best ? (
+          <p className="text-xs text-ink-2" data-testid="start-best">
+            自己ベスト{' '}
+            <span className="font-mono text-sm font-bold tabular-nums text-ink">
+              {(best.bestMs / 1000).toFixed(2)}
+            </span>{' '}
+            秒
+            <span className="ml-2 text-ink-3">{formatDateTime(best.achievedAt)}</span>
+          </p>
+        ) : (
+          <p className="text-xs text-ink-3">まだ記録がありません。</p>
+        )}
+      </div>
 
       <div className="mt-10 grid gap-8 sm:grid-cols-[1fr_1.15fr]">
         <div>

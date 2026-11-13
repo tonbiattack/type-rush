@@ -203,7 +203,6 @@ export default function App({
         <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-ink pb-2.5">
           <p className="text-lg font-bold tracking-tight">
             Type Rush
-            <span className="ml-2 text-xs font-normal text-ink-3">誤字OKのタイピングゲーム</span>
           </p>
           <p className="font-mono text-[11px] text-ink-3">
             {problemsPerGame}問 / ルール {RULES_VERSION}
