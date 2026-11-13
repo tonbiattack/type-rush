@@ -186,8 +186,8 @@ describe('similarityJudge の合否境界', () => {
 });
 
 describe('問題データ', () => {
-  it('50問以上ある', () => {
-    expect(PROBLEMS.length).toBeGreaterThanOrEqual(50);
+  it('100問以上ある', () => {
+    expect(PROBLEMS.length).toBeGreaterThanOrEqual(100);
   });
 
   it('AIへの指示でありそうな問題が半分以上ある', () => {

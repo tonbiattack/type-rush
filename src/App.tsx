@@ -1,9 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
+import {
+  DIFFICULTIES,
+  MIX_LABELS,
+  problemsForDifficulty,
+  type MixMode,
+} from './game/difficulty';
 import { currentProblem, recordInput, submitAnswer, summarize } from './game/engine';
 import { isBlockedInputType, shouldSubmitOnEnter } from './game/ime';
 import { RULES_VERSION } from './game/judge';
 import { PROBLEMS } from './game/problems';
-import { pickProblems } from './game/selection';
+import {
+  formatSeed,
+  pickProblemsWithSeed,
+  randomSeed,
+  seedFromString,
+} from './game/selection';
 import {
   fastestBest,
   findBest,
@@ -36,6 +47,17 @@ const DEFAULT_STORAGE = (): Storage | null => {
   }
 };
 
+/**
+ * 難易度に応じた出題プールを返す。
+ * 帯が違うとタイムを比較できないので、同じ帯の中だけで5問を選ぶ。
+ */
+function poolFor(pool: Problem[], mix: MixMode): Problem[] {
+  if (mix === 'mixed') return pool;
+  const filtered = problemsForDifficulty(pool, mix);
+  // 帯の問題が足りないときは全体から選ぶ（ゲームが止まるより良い）
+  return filtered.length >= 5 ? filtered : pool;
+}
+
 export default function App({
   now = () => performance.now(),
   random = Math.random,
@@ -49,6 +71,9 @@ export default function App({
   const [newBest, setNewBest] = useState<BestRecord | null>(null);
   const [tick, setTick] = useState(0);
   const [pasteWarning, setPasteWarning] = useState(false);
+  const [mix, setMix] = useState<MixMode>('mixed');
+  /** 現在のプレイで使ったシード。再挑戦時に同じセットを再現する */
+  const [seed, setSeed] = useState<string | null>(null);
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const composingRef = useRef(false);
@@ -97,8 +122,19 @@ export default function App({
     warningTimerRef.current = window.setTimeout(() => setPasteWarning(false), 4000);
   };
 
-  const start = () => {
-    const problems = pickProblems(pool, problemsPerGame, random);
+  const start = (options: { seed?: string; mix?: MixMode } = {}) => {
+    const nextMix = options.mix ?? mix;
+    // 初回もシード経由で選ぶ。そうしないと「同じセット」を再現できない。
+    const nextSeed = options.seed ?? formatSeed(randomSeed(random));
+    const selectedPool = poolFor(pool, nextMix);
+    const problems = pickProblemsWithSeed(
+      selectedPool,
+      problemsPerGame,
+      seedFromString(nextSeed),
+    );
+
+    setMix(nextMix);
+    setSeed(nextSeed);
     setNewBest(null);
     setPasteWarning(false);
     composingRef.current = false;
@@ -114,6 +150,20 @@ export default function App({
       endedAt: null,
       feedback: null,
     });
+  };
+
+  /** 終わったのと同じ5問でもう一度 */
+  const retrySameSet = () => {
+    if (seed === null) {
+      start();
+      return;
+    }
+    start({ seed, mix });
+  };
+
+  /** 新しいセットで再挑戦 */
+  const retryNewSet = () => {
+    start({ mix });
   };
 
   const handleChange = (value: string) => {
@@ -135,6 +185,7 @@ export default function App({
       const stats = summarize(next);
       const saved = saveIfBest(storageRef.current, {
         problemIds: next.problems.map((problem) => problem.id),
+        seed: seed ?? undefined,
         elapsedMs: stats.elapsedMs,
         averageSimilarity: stats.averageSimilarity,
         charactersPerSecond: stats.charactersPerSecond,
@@ -189,8 +240,6 @@ export default function App({
     }
   };
 
-  const playAgain = () => start();
-
   const bestForRuleVersion = fastestBest(store);
   const bestForThisSet = game
     ? findBest(store, problemSetSignature(game.problems.map((problem) => problem.id)))
@@ -201,9 +250,7 @@ export default function App({
       {/* 紙の端を思わせる上下の罫線だけ。影も角丸も使わない。 */}
       <div className="mx-auto flex min-h-dvh w-full max-w-[46rem] flex-col border-x border-rule px-5 pb-10 pt-7 sm:px-9 sm:pt-9">
         <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-ink pb-2.5">
-          <p className="text-lg font-bold tracking-tight">
-            Type Rush
-          </p>
+          <p className="text-lg font-bold tracking-tight">Type Rush</p>
           <p className="font-mono text-note text-ink-3">
             {problemsPerGame}問 / ルール {RULES_VERSION}
           </p>
@@ -215,7 +262,11 @@ export default function App({
               best={bestForRuleVersion}
               rulesVersion={RULES_VERSION}
               problemCount={problemsPerGame}
-              onStart={start}
+              mix={mix}
+              mixLabels={MIX_LABELS}
+              difficulties={DIFFICULTIES}
+              onMixChange={setMix}
+              onStart={() => start({ mix })}
             />
           ) : null}
 
@@ -245,8 +296,10 @@ export default function App({
               bestOverall={bestForRuleVersion}
               newBest={newBest}
               rulesVersion={RULES_VERSION}
+              seed={seed}
               now={now}
-              onPlayAgain={playAgain}
+              onRetrySameSet={retrySameSet}
+              onRetryNewSet={retryNewSet}
             />
           ) : null}
         </main>

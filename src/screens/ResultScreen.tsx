@@ -16,9 +16,14 @@ type Props = {
   bestOverall: BestRecord | undefined;
   newBest: BestRecord | null;
   rulesVersion: string;
+  /** このプレイで使ったセットのシード */
+  seed: string | null;
   /** 計測と同じクロック（テストで差し替え可能） */
   now: () => number;
-  onPlayAgain: () => void;
+  /** 終わったのと同じ5問でもう一度 */
+  onRetrySameSet: () => void;
+  /** 新しい5問で再挑戦 */
+  onRetryNewSet: () => void;
 };
 
 export function ResultScreen({
@@ -28,8 +33,10 @@ export function ResultScreen({
   bestOverall,
   newBest,
   rulesVersion,
+  seed,
   now,
-  onPlayAgain,
+  onRetrySameSet,
+  onRetryNewSet,
 }: Props) {
   const formatted = formatStats(stats);
   const mountedAt = useRef(now());
@@ -146,10 +153,10 @@ export function ResultScreen({
         </div>
       </div>
 
-      <div className="mt-8">
+      <div className="mt-8 flex flex-wrap items-start gap-3">
         <button
           type="button"
-          onClick={onPlayAgain}
+          onClick={onRetrySameSet}
           onKeyDown={(event) => {
             // 結果画面が出た瞬間の Enter 押下・押しっぱなしでは再挑戦しない
             // （マウス操作はすぐに受け付ける）
@@ -158,11 +165,25 @@ export function ResultScreen({
           autoFocus
           className="inline-flex w-full items-baseline justify-between gap-6 border-2 border-ink bg-ink px-5 py-3.5 text-left text-paper transition-colors hover:border-shu hover:bg-shu sm:w-auto sm:min-w-[15rem]"
         >
-          <span className="text-lg font-bold">もう一度</span>
+          <span className="text-lg font-bold">同じ5問でもう一度</span>
           <span className="font-mono text-note opacity-70">Enter</span>
         </button>
-        <p className="mt-2 text-note text-ink-3">新しい問題セットで再挑戦します。</p>
+
+        <button
+          type="button"
+          onClick={onRetryNewSet}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && event.repeat) event.preventDefault();
+          }}
+          className="inline-flex w-full items-baseline justify-between gap-6 border border-ink-3 px-5 py-3.5 text-left text-ink-2 transition-colors hover:border-ink hover:text-ink sm:w-auto sm:min-w-[12rem]"
+        >
+          <span className="text-base font-bold">別の問題で</span>
+        </button>
       </div>
+      <p className="mt-2 text-note leading-relaxed text-ink-3">
+        同じ5問なら条件がそろっているので、タイムをそのまま比べられます。
+        {seed ? <span className="ml-1 font-mono text-ink-3">セット {seed}</span> : null}
+      </p>
     </section>
   );
 }

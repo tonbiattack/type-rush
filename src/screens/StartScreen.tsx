@@ -1,25 +1,72 @@
 import { RankLadder } from '../components/RankLadder';
+import { DIFFICULTY_LABELS, type Difficulty, type MixMode } from '../game/difficulty';
 import { formatDateTime } from '../game/format';
 import type { BestRecord } from '../game/storage';
-
 type Props = {
   best: BestRecord | undefined;
   rulesVersion: string;
   problemCount: number;
+  mix: MixMode;
+  mixLabels: Record<MixMode, string>;
+  difficulties: Difficulty[];
+  onMixChange: (mix: MixMode) => void;
   onStart: () => void;
 };
 
-export function StartScreen({ best, rulesVersion, problemCount, onStart }: Props) {
+export function StartScreen({
+  best,
+  rulesVersion,
+  problemCount,
+  mix,
+  mixLabels,
+  difficulties,
+  onMixChange,
+  onStart,
+}: Props) {
+  const options: MixMode[] = [...difficulties, 'mixed'];
+
   return (
     <section aria-labelledby="start-heading" className="flex flex-1 flex-col justify-center py-6">
       <h2 id="start-heading" className="text-xl font-bold tracking-tight">
         {problemCount}問のタイピング
       </h2>
-
       <p className="mt-3 max-w-[38rem] text-sm leading-[1.9] text-ink-2">
         AIへの指示風のひらがな短文が{problemCount}問出ます。85%以上一致していれば合格で次の問題へ。
         誤字を直した時間も合計タイムに含まれます。
       </p>
+
+      <fieldset className="mt-6">
+        <legend className="text-xs text-ink-3">文章の長さ</legend>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {options.map((option) => {
+            const checked = mix === option;
+            return (
+              <label
+                key={option}
+                className={`cursor-pointer border px-3 py-1.5 text-xs transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-shu ${
+                  checked
+                    ? 'border-ink bg-ink text-paper'
+                    : 'border-rule text-ink-2 hover:border-ink-3'
+                }`}
+              >
+                {/* 見た目はラベル側で作るので、input 自体は隠す（キーボード操作は残す） */}
+                <input
+                  type="radio"
+                  name="mix"
+                  value={option}
+                  checked={checked}
+                  onChange={() => onMixChange(option)}
+                  className="sr-only"
+                />
+                {option === 'mixed' ? mixLabels.mixed : DIFFICULTY_LABELS[option]}
+              </label>
+            );
+          })}
+        </div>
+        <p className="mt-2 text-note leading-relaxed text-ink-3">
+          同じ長さの中だけで出題するので、タイムを比べられます。
+        </p>
+      </fieldset>
 
       <figure className="mt-6">
         <blockquote className="border-l-2 border-shu py-1 pl-3 text-lg leading-relaxed text-ink sm:text-xl">
@@ -66,7 +113,7 @@ export function StartScreen({ best, rulesVersion, problemCount, onStart }: Props
             <li>不合格でも止まらず、直して再提出できます。</li>
             <li>{problemCount}問クリアまでの総時間がスコアです。</li>
           </ol>
-          <p className="mt-3 text-note text-ink-3">
+          <p className="mt-3 text-note leading-relaxed text-ink-3">
             貼り付けは使えません。変換中の Enter は確定として扱いません（ルール {rulesVersion}）。
           </p>
         </div>
