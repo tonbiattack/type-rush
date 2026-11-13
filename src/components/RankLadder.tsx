@@ -1,4 +1,4 @@
-import { RANKS } from '../game/rank';
+import { RANKS, TOP_RANK } from '../game/rank';
 
 export function RankLadder() {
   return (
@@ -20,7 +20,7 @@ export function RankLadder() {
         ))}
       </ul>
       <p className="mt-2 text-xs leading-relaxed text-slate-500">
-        文字/秒の目安です。6文字/秒以上で最高位「神」。誤字は減点しません。
+        文字/秒の目安です。{TOP_RANK.minCps}文字/秒以上で最高位「{TOP_RANK.label}」。誤字は減点しません。
       </p>
     </div>
   );

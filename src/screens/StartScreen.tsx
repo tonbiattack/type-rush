@@ -23,7 +23,7 @@ export function StartScreen({ best, rulesVersion, problemCount, onStart }: Props
         </h2>
         <p className="mt-3 max-w-prose text-sm leading-relaxed text-slate-300">
           {problemCount}問のひらがな短文を、多少の誤字を気にせず最速でクリアするゲームです。
-          正しさよりも、伝わる速さを競います。
+          お題は「AIへの指示」でありそうな文が中心。正しさよりも、伝わる速さを競います。
         </p>
       </div>
 
@@ -37,8 +37,8 @@ export function StartScreen({ best, rulesVersion, problemCount, onStart }: Props
           <li>{problemCount}問クリアまでの総時間がスコアです。</li>
         </ol>
         <p className="mt-3 text-xs leading-relaxed text-slate-500">
-          判定は Levenshtein 距離による近似です。AIによる意味の理解ではありません（ルール {rulesVersion}）。
-          貼り付けは使えません。
+          判定は Levenshtein 距離による近似で、速さ（文字/秒）から AI 時代の称号を決めます。
+          AIによる意味の理解ではありません（ルール {rulesVersion}）。貼り付けは使えません。
         </p>
       </div>
 

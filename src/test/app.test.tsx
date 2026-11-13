@@ -185,7 +185,7 @@ describe('App のゲームフロー', () => {
     const user = await startGame();
     const textarea = screen.getByLabelText('回答入力');
 
-    // 55文字を 400ms で → 約137文字/秒 → 最高位「神」
+    // 55文字を 400ms で → 約137文字/秒 → 最高位「AIの神」
     for (const [index, problem] of POOL.entries()) {
       clock.now = 1000 + index * 100;
       await user.clear(textarea);
@@ -194,15 +194,15 @@ describe('App のゲームフロー', () => {
     }
 
     expect(screen.getByTestId('rank-card')).toBeTruthy();
-    expect(screen.getByTestId('rank-label').textContent).toBe('神');
-    expect(screen.getByTestId('rank-next').textContent).toMatch(/最高ランク「神」/);
+    expect(screen.getByTestId('rank-label').textContent).toBe('AIの神');
+    expect(screen.getByTestId('rank-next').textContent).toMatch(/最高ランク「AIの神」/);
   });
 
   it('遅いタイムでは低いランクになる', async () => {
     const user = await startGame();
     const textarea = screen.getByLabelText('回答入力');
 
-    // 55文字を 48秒で → 約1.1文字/秒 → 見習い
+    // 55文字を 48秒で → 約1.1文字/秒 → AI入門者
     for (const [index, problem] of POOL.entries()) {
       clock.now = 1000 + index * 12_000;
       await user.clear(textarea);
@@ -210,7 +210,7 @@ describe('App のゲームフロー', () => {
       await user.keyboard('{Enter}');
     }
 
-    expect(screen.getByTestId('rank-label').textContent).toBe('見習い');
+    expect(screen.getByTestId('rank-label').textContent).toBe('AI入門者');
     expect(screen.getByTestId('rank-next').textContent).toMatch(/^あと /);
   });
 

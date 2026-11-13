@@ -186,8 +186,15 @@ describe('similarityJudge の合否境界', () => {
 });
 
 describe('問題データ', () => {
-  it('20問以上ある', () => {
-    expect(PROBLEMS.length).toBeGreaterThanOrEqual(20);
+  it('50問以上ある', () => {
+    expect(PROBLEMS.length).toBeGreaterThanOrEqual(50);
+  });
+
+  it('AIへの指示でありそうな問題が半分以上ある', () => {
+    const instructionLike = PROBLEMS.filter((problem) =>
+      /(ください|して$|ほしい|まとめて|せつめい|かくにん|ていあん|くらべて|してね)/.test(problem.prompt),
+    );
+    expect(instructionLike.length).toBeGreaterThanOrEqual(Math.floor(PROBLEMS.length / 2));
   });
 
   it('IDが重複しない', () => {
