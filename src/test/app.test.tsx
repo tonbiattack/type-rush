@@ -108,7 +108,8 @@ describe('App のゲームフロー', () => {
     await user.keyboard('{Enter}');
 
     expect(screen.getByTestId('prompt').textContent).toBe(POOL[0].prompt);
-    expect(screen.getByRole('status').textContent).toMatch(/一致率/);
+    expect(screen.getByTestId('feedback').textContent).toMatch(/一致率|不合格|もう少し/);
+    expect(screen.getByRole('img', { name: /不合格/ })).toBeTruthy();
     expect((textarea as HTMLTextAreaElement).value).toBe('あいうえ');
 
     await user.type(textarea, 'おかきくけこ');
@@ -169,10 +170,10 @@ describe('App のゲームフロー', () => {
 
     const heading = screen.getByRole('heading', { level: 2 });
     expect(heading.textContent).toMatch(/5問クリア/);
-    expect(screen.getByText('自己ベスト更新！')).toBeTruthy();
-    expect(screen.getByText('総時間')).toBeTruthy();
+    expect(screen.getByRole('img', { name: /自己ベスト/ })).toBeTruthy();
+    expect(screen.getByText('平均一致率')).toBeTruthy();
     // 最初の入力 3000ms 〜 最終クリア 11000ms
-    expect(screen.getByTestId('total-time').textContent).toBe('8.00秒');
+    expect(screen.getByTestId('total-time').textContent).toBe('8.00');
     expect(screen.getByRole('table')).toBeTruthy();
     expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(6);
 
@@ -195,7 +196,7 @@ describe('App のゲームフロー', () => {
 
     expect(screen.getByTestId('rank-card')).toBeTruthy();
     expect(screen.getByTestId('rank-label').textContent).toBe('AIの神');
-    expect(screen.getByTestId('rank-next').textContent).toMatch(/最高ランク「AIの神」/);
+    expect(screen.getByTestId('rank-next').textContent).toMatch(/最高位/);
   });
 
   it('遅いタイムでは低いランクになる', async () => {
@@ -211,7 +212,7 @@ describe('App のゲームフロー', () => {
     }
 
     expect(screen.getByTestId('rank-label').textContent).toBe('AI入門者');
-    expect(screen.getByTestId('rank-next').textContent).toMatch(/^あと /);
+    expect(screen.getByTestId('rank-next').textContent).toMatch(/次の/);
   });
 
   it('自己ベストは保存され、再挑戦で更新されない場合は表示される', async () => {
@@ -224,7 +225,7 @@ describe('App のゲームフロー', () => {
       await user.type(textarea, problem.prompt);
       await user.keyboard('{Enter}');
     }
-    expect(screen.getByText('自己ベスト更新！')).toBeTruthy();
+    expect(screen.getByRole('img', { name: /自己ベスト/ })).toBeTruthy();
 
     // 再挑戦して遅いタイムを出す
     await user.click(screen.getByRole('button', { name: /もう一度/ }));
@@ -235,8 +236,8 @@ describe('App のゲームフロー', () => {
       await user.keyboard('{Enter}');
     }
 
-    expect(screen.queryByText('自己ベスト更新！')).toBeNull();
-    expect(screen.getByTestId('total-time').textContent).toBe('20.00秒');
+    expect(screen.queryByRole('img', { name: /自己ベスト/ })).toBeNull();
+    expect(screen.getByTestId('total-time').textContent).toBe('20.00');
     expect(screen.getByTestId('best-this-set').textContent).toBe('8.00秒');
   });
 
@@ -265,7 +266,7 @@ describe('App のゲームフロー', () => {
       await user.keyboard('{Enter}');
     }
     expect(screen.getByRole('heading', { level: 2 }).textContent).toMatch(/5問クリア/);
-    expect(screen.getByTestId('total-time').textContent).toBe('4.00秒');
+    expect(screen.getByTestId('total-time').textContent).toBe('4.00');
 
     const first = renderApp(clock, storage);
     // 再マウント（リロード相当）ではスタート画面に戻る
@@ -273,6 +274,6 @@ describe('App のゲームフロー', () => {
     renderApp(clock, storage);
 
     expect(screen.getByRole('button', { name: /スタート/ })).toBeTruthy();
-    expect(screen.getByTestId('start-best').textContent).toContain('4.00秒');
+    expect(screen.getByTestId('start-best').textContent).toContain('4.00');
   });
 });
