@@ -27,6 +27,20 @@ npm run preview  # ビルド結果をローカルで確認
 
 `npm run build` の出力（`dist/`）はそのまま静的ホスティングに置けます。`vite.config.ts` で `base: './'` を指定しているため、GitHub Pages のプロジェクトページや Cloudflare Pages などのサブパス配信でも動作します。バックエンド・外部通信はありません。
 
+OGP の画像 URL は絶対 URL が求められるため、公開先が決まったら `SITE_URL` を渡してビルドします。
+
+```bash
+SITE_URL=https://example.github.io/type-rush npm run build
+```
+
+未指定のときは相対 URL のまま出力されます（ローカル確認用）。
+
+アイコンとOGP画像は `public/` にあります。デザインを変えたときは次で再生成できます（Chrome が必要）。
+
+```bash
+npm run ogp
+```
+
 ## 遊び方
 
 1. スタート画面で「スタート」（Enter でも可）。

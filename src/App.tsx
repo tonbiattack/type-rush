@@ -16,8 +16,9 @@ import {
   seedFromString,
 } from './game/selection';
 import {
-  fastestBest,
+  bestByMix,
   findBest,
+  findBestByMix,
   problemSetSignature,
   readStore,
   saveIfBest,
@@ -186,12 +187,13 @@ export default function App({
       const saved = saveIfBest(storageRef.current, {
         problemIds: next.problems.map((problem) => problem.id),
         seed: seed ?? undefined,
+        mix,
         elapsedMs: stats.elapsedMs,
         averageSimilarity: stats.averageSimilarity,
         charactersPerSecond: stats.charactersPerSecond,
       });
       setStore(saved.store);
-      setNewBest(saved.isNewOverallBest ? saved.best : null);
+      setNewBest(saved.isNewMixBest ? saved.best : null);
       composingRef.current = false;
     }
   };
@@ -240,10 +242,11 @@ export default function App({
     }
   };
 
-  const bestForRuleVersion = fastestBest(store);
+  const bestsByMix = bestByMix(store);
   const bestForThisSet = game
     ? findBest(store, problemSetSignature(game.problems.map((problem) => problem.id)))
     : undefined;
+  const bestInMix = findBestByMix(store, mix);
 
   return (
     <div className="min-h-dvh bg-paper text-ink">
@@ -259,10 +262,10 @@ export default function App({
         <main className="flex flex-1 flex-col justify-center pt-8">
           {game === null || game.status === 'idle' ? (
             <StartScreen
-              best={bestForRuleVersion}
+              bestsByMix={bestsByMix}
+              mix={mix}
               rulesVersion={RULES_VERSION}
               problemCount={problemsPerGame}
-              mix={mix}
               mixLabels={MIX_LABELS}
               difficulties={DIFFICULTIES}
               onMixChange={setMix}
@@ -293,9 +296,10 @@ export default function App({
               game={game}
               stats={summarize(game)}
               bestForThisSet={bestForThisSet}
-              bestOverall={bestForRuleVersion}
+              bestInMix={bestInMix}
+              mix={mix}
+              mixLabel={MIX_LABELS[mix]}
               newBest={newBest}
-              rulesVersion={RULES_VERSION}
               seed={seed}
               now={now}
               onRetrySameSet={retrySameSet}

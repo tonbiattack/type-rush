@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Type Rush">
+  <!-- 判子を模したアイコン。紙に朱の角印が押された形。 -->
+  <rect width="64" height="64" fill="#f0f1ed" />
+  <rect x="11" y="11" width="42" height="42" fill="none" stroke="#cf3a1a" stroke-width="4.5" />
+  <g fill="#cf3a1a">
+    <rect x="19" y="21" width="4.5" height="22" />
+    <rect x="27.5" y="21" width="4.5" height="22" />
+    <rect x="36" y="21" width="9" height="4.5" />
+    <rect x="36" y="30" width="4.5" height="4.5" />
+    <rect x="36" y="38.5" width="9" height="4.5" />
+  </g>
+</svg>

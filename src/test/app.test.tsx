@@ -76,7 +76,7 @@ describe('App のゲームフロー', () => {
     expect(screen.getByRole('heading', { level: 2 })).toBeTruthy();
     expect(screen.getByText('遊び方')).toBeTruthy();
     expect(screen.getByRole('button', { name: /スタート/ })).toBeTruthy();
-    expect(screen.getByText(/まだ記録がありません/)).toBeTruthy();
+    expect(screen.getByText(/記録はまだありません/)).toBeTruthy();
   });
 
   it('スタートで1問目が表示され、入力欄にフォーカスする', async () => {
