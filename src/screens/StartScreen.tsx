@@ -25,7 +25,7 @@ export function StartScreen({ best, rulesVersion, problemCount, onStart }: Props
         <blockquote className="border-l-2 border-shu py-1 pl-3 text-lg leading-relaxed text-ink sm:text-xl">
           このぶんをよんでかんたんにまとめてください
         </blockquote>
-        <figcaption className="mt-1.5 pl-3 text-[11px] text-ink-3">お題の例</figcaption>
+        <figcaption className="mt-1.5 pl-3 text-note text-ink-3">お題の例</figcaption>
       </figure>
 
       <div className="mt-6 flex flex-wrap items-baseline gap-x-6 gap-y-2">
@@ -39,7 +39,7 @@ export function StartScreen({ best, rulesVersion, problemCount, onStart }: Props
           className="inline-flex w-full items-baseline justify-between gap-6 border-2 border-ink bg-ink px-5 py-3.5 text-left text-paper transition-colors hover:border-shu hover:bg-shu sm:w-auto sm:min-w-[15rem]"
         >
           <span className="text-lg font-bold">スタート</span>
-          <span className="font-mono text-[11px] opacity-70">Enter</span>
+          <span className="font-mono text-note opacity-70">Enter</span>
         </button>
 
         {best ? (
@@ -66,7 +66,7 @@ export function StartScreen({ best, rulesVersion, problemCount, onStart }: Props
             <li>不合格でも止まらず、直して再提出できます。</li>
             <li>{problemCount}問クリアまでの総時間がスコアです。</li>
           </ol>
-          <p className="mt-3 text-[11px] leading-relaxed text-ink-3">
+          <p className="mt-3 text-note text-ink-3">
             貼り付けは使えません。変換中の Enter は確定として扱いません（ルール {rulesVersion}）。
           </p>
         </div>

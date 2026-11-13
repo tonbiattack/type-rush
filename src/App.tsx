@@ -204,7 +204,7 @@ export default function App({
           <p className="text-lg font-bold tracking-tight">
             Type Rush
           </p>
-          <p className="font-mono text-[11px] text-ink-3">
+          <p className="font-mono text-note text-ink-3">
             {problemsPerGame}問 / ルール {RULES_VERSION}
           </p>
         </header>
@@ -251,7 +251,7 @@ export default function App({
           ) : null}
         </main>
 
-        <footer className="mt-12 border-t border-rule pt-3 text-[11px] leading-relaxed text-ink-3">
+        <footer className="mt-12 border-t border-rule pt-3 text-note text-ink-3">
           <p>
             判定は文字列の近さ（Levenshtein 距離）による暫定ルールで、意味を理解した判定ではありません。
           </p>

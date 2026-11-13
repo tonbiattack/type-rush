@@ -65,19 +65,19 @@ export function ResultScreen({
 
       <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-3 border-y border-ink py-3 sm:grid-cols-4">
         <div>
-          <dt className="text-[11px] text-ink-3">文字/秒</dt>
+          <dt className="text-note text-ink-3">文字/秒</dt>
           <dd className="font-mono text-lg font-bold tabular-nums">{formatted.charactersPerSecond}</dd>
         </div>
         <div>
-          <dt className="text-[11px] text-ink-3">文字/分</dt>
+          <dt className="text-note text-ink-3">文字/分</dt>
           <dd className="font-mono text-lg font-bold tabular-nums">{formatted.charactersPerMinute}</dd>
         </div>
         <div>
-          <dt className="text-[11px] text-ink-3">平均一致率</dt>
+          <dt className="text-note text-ink-3">平均一致率</dt>
           <dd className="font-mono text-lg font-bold tabular-nums">{formatted.averageSimilarity}</dd>
         </div>
         <div>
-          <dt className="text-[11px] text-ink-3">確定した文字</dt>
+          <dt className="text-note text-ink-3">確定した文字</dt>
           <dd className="font-mono text-lg font-bold tabular-nums">{stats.characters}</dd>
         </div>
       </dl>
@@ -138,9 +138,9 @@ export function ResultScreen({
             </div>
           </dl>
           {bestOverall ? (
-            <p className="mt-2 text-[11px] text-ink-3">{formatDateTime(bestOverall.achievedAt)} の記録</p>
+            <p className="mt-2 text-note text-ink-3">{formatDateTime(bestOverall.achievedAt)} の記録</p>
           ) : null}
-          <p className="mt-3 text-[11px] leading-relaxed text-ink-3">
+          <p className="mt-3 text-note text-ink-3">
             称号は文字/秒で決まります。
           </p>
         </div>
@@ -159,9 +159,9 @@ export function ResultScreen({
           className="inline-flex w-full items-baseline justify-between gap-6 border-2 border-ink bg-ink px-5 py-3.5 text-left text-paper transition-colors hover:border-shu hover:bg-shu sm:w-auto sm:min-w-[15rem]"
         >
           <span className="text-lg font-bold">もう一度</span>
-          <span className="font-mono text-[11px] opacity-70">Enter</span>
+          <span className="font-mono text-note opacity-70">Enter</span>
         </button>
-        <p className="mt-2 text-[11px] text-ink-3">新しい問題セットで再挑戦します。</p>
+        <p className="mt-2 text-note text-ink-3">新しい問題セットで再挑戦します。</p>
       </div>
     </section>
   );

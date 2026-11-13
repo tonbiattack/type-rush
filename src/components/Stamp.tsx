@@ -23,9 +23,9 @@ export function Stamp({ verdict, detail, tone = 'pass' }: Props) {
       role="img"
       aria-label={detail ? `${verdict}、${detail}` : verdict}
     >
-      <span className="text-xl font-bold tracking-[0.14em]">{verdict}</span>
+      <span className="text-xl font-bold">{verdict}</span>
       {detail ? (
-        <span className="font-mono text-[10px] tracking-[0.06em] opacity-80">{detail}</span>
+        <span className="font-mono text-note opacity-80">{detail}</span>
       ) : null}
     </div>
   );
