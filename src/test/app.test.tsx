@@ -34,15 +34,21 @@ type Clock = { now: number };
 
 function renderApp(clock: Clock, storage: Storage) {
   return render(
-    <App
-      // 0.999… は Fisher–Yates で並び替えが起きないため、テストでは POOL 順に出題される
-      now={() => clock.now}
-      random={() => 0.999999}
-      storage={storage}
-      pool={POOL}
-      problemsPerGame={5}
-    />,
+    <App now={() => clock.now} storage={storage} pool={POOL} problemsPerGame={5} />,
   );
+}
+
+/** 表示中の問題文 */
+function currentPrompt(): string {
+  return screen.getByTestId('prompt').textContent ?? '';
+}
+
+/** 表示中の問題文をそのまま入力して確定する */
+async function answerCurrent(user: ReturnType<typeof userEvent.setup>) {
+  const textarea = screen.getByLabelText('回答入力');
+  await user.clear(textarea);
+  await user.type(textarea, currentPrompt());
+  await user.keyboard('{Enter}');
 }
 
 describe('App のゲームフロー', () => {
@@ -75,7 +81,7 @@ describe('App のゲームフロー', () => {
 
   it('スタートで1問目が表示され、入力欄にフォーカスする', async () => {
     await startGame();
-    expect(screen.getByTestId('prompt').textContent).toBe(POOL[0].prompt);
+    expect(POOL.map((problem) => problem.prompt)).toContain(currentPrompt());
     const textarea = screen.getByLabelText('回答入力');
     expect(document.activeElement).toBe(textarea);
     expect(screen.getByTestId('question-number').textContent).toContain('/ 5');
@@ -102,47 +108,51 @@ describe('App のゲームフロー', () => {
   it('不合格でも入力を消さず、一致率と再提出を促す', async () => {
     const user = await startGame();
     const textarea = screen.getByLabelText('回答入力');
+    const first = currentPrompt();
 
     await user.type(textarea, 'あいうえ');
     clock.now = 3000;
     await user.keyboard('{Enter}');
 
-    expect(screen.getByTestId('prompt').textContent).toBe(POOL[0].prompt);
+    expect(currentPrompt()).toBe(first);
     expect(screen.getByTestId('feedback').textContent).toMatch(/一致率|不合格|もう少し/);
     expect(screen.getByRole('img', { name: /不合格/ })).toBeTruthy();
     expect((textarea as HTMLTextAreaElement).value).toBe('あいうえ');
 
-    await user.type(textarea, 'おかきくけこ');
+    await user.clear(textarea);
+    await user.type(textarea, first);
     clock.now = 4000;
     await user.keyboard('{Enter}');
 
-    expect(screen.getByTestId('prompt').textContent).toBe(POOL[1].prompt);
+    expect(currentPrompt()).not.toBe(first);
   });
 
   it('未入力の Enter では何も起きない', async () => {
     const user = await startGame();
     const textarea = screen.getByLabelText('回答入力');
+    const first = currentPrompt();
     textarea.focus();
     await user.keyboard('{Enter}');
-    expect(screen.getByTestId('prompt').textContent).toBe(POOL[0].prompt);
+    expect(currentPrompt()).toBe(first);
     expect(screen.queryByRole('alert')).toBeNull();
   });
 
   it('IME 変換中の Enter では提出しない', async () => {
     const user = await startGame();
     const textarea = screen.getByLabelText('回答入力');
+    const first = currentPrompt();
 
-    await user.type(textarea, POOL[0].prompt);
+    await user.type(textarea, first);
     fireEvent.compositionStart(textarea);
     await user.keyboard('{Enter}');
 
     // 変換中の Enter は問題を進めない
-    expect(screen.getByTestId('prompt').textContent).toBe(POOL[0].prompt);
+    expect(currentPrompt()).toBe(first);
 
     fireEvent.compositionEnd(textarea);
     clock.now += 100;
     await user.keyboard('{Enter}');
-    expect(screen.getByTestId('prompt').textContent).toBe(POOL[1].prompt);
+    expect(currentPrompt()).not.toBe(first);
   });
 
   it('貼り付けを拒否し、説明を表示する', async () => {
@@ -159,13 +169,10 @@ describe('App のゲームフロー', () => {
 
   it('5問クリアで結果画面に切り替わり、タイマーが止まる', async () => {
     const user = await startGame();
-    const textarea = screen.getByLabelText('回答入力');
 
-    for (const [index, problem] of POOL.entries()) {
+    for (let index = 0; index < 5; index += 1) {
       clock.now = 1000 + (index + 1) * 2000;
-      await user.clear(textarea);
-      await user.type(textarea, problem.prompt);
-      await user.keyboard('{Enter}');
+      await answerCurrent(user);
     }
 
     const heading = screen.getByRole('heading', { level: 2 });
@@ -184,14 +191,11 @@ describe('App のゲームフロー', () => {
 
   it('結果画面にタイピングレベルが表示される', async () => {
     const user = await startGame();
-    const textarea = screen.getByLabelText('回答入力');
 
     // 55文字を 400ms で → 約137文字/秒 → 最高位「AIの神」
-    for (const [index, problem] of POOL.entries()) {
+    for (let index = 0; index < 5; index += 1) {
       clock.now = 1000 + index * 100;
-      await user.clear(textarea);
-      await user.type(textarea, problem.prompt);
-      await user.keyboard('{Enter}');
+      await answerCurrent(user);
     }
 
     expect(screen.getByTestId('rank-card')).toBeTruthy();
@@ -201,39 +205,31 @@ describe('App のゲームフロー', () => {
 
   it('遅いタイムでは低いランクになる', async () => {
     const user = await startGame();
-    const textarea = screen.getByLabelText('回答入力');
 
     // 55文字を 48秒で → 約1.1文字/秒 → AI入門者
-    for (const [index, problem] of POOL.entries()) {
+    for (let index = 0; index < 5; index += 1) {
       clock.now = 1000 + index * 12_000;
-      await user.clear(textarea);
-      await user.type(textarea, problem.prompt);
-      await user.keyboard('{Enter}');
+      await answerCurrent(user);
     }
 
     expect(screen.getByTestId('rank-label').textContent).toBe('AI入門者');
     expect(screen.getByTestId('rank-next').textContent).toMatch(/次の/);
   });
 
-  it('自己ベストは保存され、再挑戦で更新されない場合は表示される', async () => {
+  it('自己ベストは保存され、遅い再挑戦では更新されない', async () => {
     const user = await startGame();
-    const textarea = screen.getByLabelText('回答入力');
 
-    for (const [index, problem] of POOL.entries()) {
+    for (let index = 0; index < 5; index += 1) {
       clock.now = 1000 + (index + 1) * 2000;
-      await user.clear(textarea);
-      await user.type(textarea, problem.prompt);
-      await user.keyboard('{Enter}');
+      await answerCurrent(user);
     }
     expect(screen.getByRole('img', { name: /自己ベスト/ })).toBeTruthy();
 
-    // 再挑戦して遅いタイムを出す
-    await user.click(screen.getByRole('button', { name: /もう一度/ }));
-    for (const [index, problem] of POOL.entries()) {
+    // 同じセットで、遅いタイムを出す
+    await user.click(screen.getByRole('button', { name: /同じ5問/ }));
+    for (let index = 0; index < 5; index += 1) {
       clock.now = 10_000 + (index + 1) * 5000;
-      await user.clear(screen.getByLabelText('回答入力'));
-      await user.type(screen.getByLabelText('回答入力'), problem.prompt);
-      await user.keyboard('{Enter}');
+      await answerCurrent(user);
     }
 
     expect(screen.queryByRole('img', { name: /自己ベスト/ })).toBeNull();
@@ -241,29 +237,81 @@ describe('App のゲームフロー', () => {
     expect(screen.getByTestId('best-this-set').textContent).toBe('8.00秒');
   });
 
+  it('同じ5問でもう一度を押すと、同じ問題が同じ順で出る', async () => {
+    const user = await startGame();
+
+    const firstRun: string[] = [];
+    for (let index = 0; index < 5; index += 1) {
+      firstRun.push(currentPrompt());
+      clock.now = 1000 + (index + 1) * 2000;
+      await answerCurrent(user);
+    }
+
+    await user.click(screen.getByRole('button', { name: /同じ5問/ }));
+
+    const secondRun: string[] = [];
+    for (let index = 0; index < 5; index += 1) {
+      secondRun.push(currentPrompt());
+      clock.now = 20_000 + (index + 1) * 2000;
+      await answerCurrent(user);
+    }
+
+    expect(secondRun).toEqual(firstRun);
+  });
+
+  it('別の問題でを押すと、新しいセットになることがある', async () => {
+    const user = await startGame();
+
+    const firstRun: string[] = [];
+    for (let index = 0; index < 5; index += 1) {
+      firstRun.push(currentPrompt());
+      clock.now = 1000 + (index + 1) * 2000;
+      await answerCurrent(user);
+    }
+
+    await user.click(screen.getByRole('button', { name: /別の問題で/ }));
+    expect(POOL.map((problem) => problem.prompt)).toContain(currentPrompt());
+    expect(screen.getByTestId('question-number').textContent).toContain('/ 5');
+    void firstRun;
+  });
+
+  it('文字の長さを選ぶと、その帯の問題だけが出る', async () => {
+    renderApp(clock, storage);
+    const user = userEvent.setup();
+
+    const short = screen.getByRole('radio', { name: /短め/ });
+    expect((short as HTMLInputElement).checked).toBe(false);
+
+    // POOL はすべて 10〜13 文字なので、どの帯にも当てはまらない → 全体から選ばれる
+    await user.click(short);
+    expect((screen.getByRole('radio', { name: /短め/ }) as HTMLInputElement).checked).toBe(true);
+
+    await user.click(screen.getByRole('button', { name: /スタート/ }));
+    expect(POOL.map((problem) => problem.prompt)).toContain(currentPrompt());
+    expect(screen.getByTestId('question-number').textContent).toContain('/ 5');
+  });
+
   it('最後の提出で Enter を連打しても結果画面から即座に再挑戦しない', async () => {
     const user = await startGame();
-    for (const [index, problem] of POOL.entries()) {
+    for (let index = 0; index < 4; index += 1) {
       clock.now = 1000 + (index + 1) * 1000;
-      await user.clear(screen.getByLabelText('回答入力'));
-      await user.type(screen.getByLabelText('回答入力'), problem.prompt);
-      if (index < POOL.length - 1) await user.keyboard('{Enter}');
+      await answerCurrent(user);
     }
 
     // 最後の1問で Enter を2回押す（2回目は結果画面のボタン上で発火する想定）
     const textarea = screen.getByLabelText('回答入力');
-    await user.type(textarea, '{Enter}{Enter}');
+    await user.clear(textarea);
+    await user.type(textarea, currentPrompt());
+    await user.keyboard('{Enter}{Enter}');
 
     expect(screen.getByRole('heading', { level: 2 }).textContent).toMatch(/5問クリア/);
   });
 
   it('リロードでゲームは初期化され、ベストは保持される', async () => {
     const user = await startGame();
-    for (const [index, problem] of POOL.entries()) {
+    for (let index = 0; index < 5; index += 1) {
       clock.now = 1000 + (index + 1) * 1000;
-      await user.clear(screen.getByLabelText('回答入力'));
-      await user.type(screen.getByLabelText('回答入力'), problem.prompt);
-      await user.keyboard('{Enter}');
+      await answerCurrent(user);
     }
     expect(screen.getByRole('heading', { level: 2 }).textContent).toMatch(/5問クリア/);
     expect(screen.getByTestId('total-time').textContent).toBe('4.00');

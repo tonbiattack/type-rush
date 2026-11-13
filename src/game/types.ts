@@ -36,7 +36,6 @@ export type GameState = {
   /** 直近の不合格判定 */
   feedback: GameFeedback | null;
 };
-
 export type SubmitOutcome =
   | 'accepted'
   | 'completed'

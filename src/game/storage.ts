@@ -5,6 +5,8 @@ export type BestRecord = {
   /** ルールバージョン + 問題IDの並びで決まる比較用のキー */
   signature: string;
   problemIds: string[];
+  /** そのセットを選んだシード。同じセットを再現するのに使う */
+  seed?: string;
   bestMs: number;
   averageSimilarity: number;
   charactersPerSecond: number;
@@ -98,6 +100,8 @@ export function saveIfBest(
   storage: Storage | null,
   input: {
     problemIds: string[];
+    /** 問題を選んだシード（再挑戦で同じセットを再現するため） */
+    seed?: string;
     elapsedMs: number;
     averageSimilarity: number;
     charactersPerSecond: number;
@@ -113,6 +117,7 @@ export function saveIfBest(
     rulesVersion: RULES_VERSION,
     signature,
     problemIds: [...input.problemIds],
+    seed: input.seed,
     bestMs: input.elapsedMs,
     averageSimilarity: input.averageSimilarity,
     charactersPerSecond: input.charactersPerSecond,
