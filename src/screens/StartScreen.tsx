@@ -1,3 +1,4 @@
+import { RankLadder } from '../components/RankLadder';
 import { formatDateTime } from '../game/format';
 import type { BestRecord } from '../game/storage';
 
@@ -54,6 +55,8 @@ export function StartScreen({ best, rulesVersion, problemCount, onStart }: Props
           <p className="mt-1 text-sm text-slate-400">まだ記録がありません。最初の記録を作りましょう。</p>
         )}
       </div>
+
+      <RankLadder />
 
       <div>
         <button

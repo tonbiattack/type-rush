@@ -1,6 +1,8 @@
 import { useRef } from 'react';
+import { RankBadge } from '../components/RankBadge';
 import type { GameStats } from '../game/engine';
 import { formatDateTime, formatStats, formatSimilarity } from '../game/format';
+import { rankFor } from '../game/rank';
 import type { BestRecord } from '../game/storage';
 import type { GameState } from '../game/types';
 
@@ -30,6 +32,7 @@ export function ResultScreen({
   onPlayAgain,
 }: Props) {
   const formatted = formatStats(stats);
+  const rank = rankFor(stats.charactersPerSecond);
   const mountedAt = useRef(now());
   const canRetry = () => now() - mountedAt.current >= RETRY_KEY_GUARD_MS;
 
@@ -39,13 +42,19 @@ export function ResultScreen({
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-400">結果</p>
         <h2 id="result-heading" className="mt-1 text-2xl font-black sm:text-3xl">
           {game.problems.length}問クリア
+          <span className={`ml-3 align-middle text-base font-bold ${rank.textClass}`} data-testid="rank-inline">
+            {rank.label}
+          </span>
         </h2>
         {newBest ? (
           <p className="mt-2 inline-block rounded-lg bg-amber-400/15 px-3 py-1 text-sm font-bold text-amber-300" role="status">
             自己ベスト更新！
           </p>
         ) : null}
+        <p className="mt-2 text-xs text-slate-400">速さ（文字/秒）でタイピングレベルを判定します。</p>
       </div>
+
+      <RankBadge charactersPerSecond={stats.charactersPerSecond} />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div className="rounded-2xl border border-sky-500/40 bg-sky-500/10 p-4 sm:col-span-1">
