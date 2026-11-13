@@ -5,6 +5,7 @@ import {
   problemsForDifficulty,
   type MixMode,
 } from './game/difficulty';
+import { COUNTDOWN_TOTAL_MS, countdownLabel } from './game/countdown';
 import { currentProblem, recordInput, submitAnswer, summarize } from './game/engine';
 import { isBlockedInputType, shouldSubmitOnEnter } from './game/ime';
 import { RULES_VERSION } from './game/judge';
@@ -26,6 +27,7 @@ import {
   type BestStore,
 } from './game/storage';
 import type { GameState, Problem } from './game/types';
+import { CountdownScreen } from './screens/CountdownScreen';
 import { PlayScreen } from './screens/PlayScreen';
 import { ResultScreen } from './screens/ResultScreen';
 import { StartScreen } from './screens/StartScreen';
@@ -38,6 +40,8 @@ export type AppProps = {
   storage?: Storage | null;
   pool?: Problem[];
   problemsPerGame?: number;
+  /** カウントダウンの長さ（テストで短縮するため） */
+  countdownTotalMs?: number;
 };
 
 const DEFAULT_STORAGE = (): Storage | null => {
@@ -65,6 +69,7 @@ export default function App({
   storage,
   pool = PROBLEMS,
   problemsPerGame = 5,
+  countdownTotalMs = COUNTDOWN_TOTAL_MS,
 }: AppProps) {
   const storageRef = useRef<Storage | null>(storage ?? DEFAULT_STORAGE());
   const [game, setGame] = useState<GameState | null>(null);
@@ -75,11 +80,17 @@ export default function App({
   const [mix, setMix] = useState<MixMode>('mixed');
   /** 現在のプレイで使ったシード。再挑戦時に同じセットを再現する */
   const [seed, setSeed] = useState<string | null>(null);
+  /**
+   * カウントダウンの開始時刻。null ならカウントダウン中ではない。
+   * 計測用の startedAt（最初の入力）とは別物。
+   */
+  const [countdownFrom, setCountdownFrom] = useState<number | null>(null);
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const composingRef = useRef(false);
   const compositionEndedAtRef = useRef<number | null>(null);
   const warningTimerRef = useRef<number | null>(null);
+  const countdownTimerRef = useRef<number | null>(null);
 
   // 連続 Enter でも最新の状態を参照できるよう、状態の写しを保持する
   const gameRef = useRef<GameState | null>(null);
@@ -90,6 +101,13 @@ export default function App({
     setGame(next);
   };
 
+  // カウントダウン中は数字の更新だけを回す（計測はまだ始めない）
+  useEffect(() => {
+    if (countdownFrom === null) return;
+    const id = window.setInterval(() => setTick((value) => value + 1), 60);
+    return () => window.clearInterval(id);
+  }, [countdownFrom]);
+
   // プレイ中だけ経過時間を更新する（計測自体は performance.now() の差分）
   useEffect(() => {
     if (status !== 'playing' || game?.startedAt === null) return;
@@ -97,10 +115,16 @@ export default function App({
     return () => window.clearInterval(id);
   }, [status, game?.startedAt]);
 
+  // カウントダウンが終わったら入力欄へフォーカスする
+  useEffect(() => {
+    if (countdownFrom === null) return;
+    inputRef.current?.focus();
+  }, [countdownFrom]);
+
   // 問題が変わったら入力欄へフォーカスを戻す
   useEffect(() => {
-    if (status === 'playing') inputRef.current?.focus();
-  }, [status, game?.currentIndex]);
+    if (status === 'playing' && countdownFrom === null) inputRef.current?.focus();
+  }, [status, game?.currentIndex, countdownFrom]);
 
   // 画面外フォーカスから戻ったら入力へ復帰する
   useEffect(() => {
@@ -113,6 +137,7 @@ export default function App({
   useEffect(
     () => () => {
       if (warningTimerRef.current !== null) window.clearTimeout(warningTimerRef.current);
+      if (countdownTimerRef.current !== null) window.clearTimeout(countdownTimerRef.current);
     },
     [],
   );
@@ -121,6 +146,18 @@ export default function App({
     setPasteWarning(true);
     if (warningTimerRef.current !== null) window.clearTimeout(warningTimerRef.current);
     warningTimerRef.current = window.setTimeout(() => setPasteWarning(false), 4000);
+  };
+
+  // カウントダウンを開始し、終わったら解除する
+  const beginCountdown = () => {
+    if (countdownTimerRef.current !== null) window.clearTimeout(countdownTimerRef.current);
+    setCountdownFrom(now());
+    setTick((value) => value + 1);
+    countdownTimerRef.current = window.setTimeout(() => {
+      setCountdownFrom(null);
+      countdownTimerRef.current = null;
+      inputRef.current?.focus();
+    }, countdownTotalMs);
   };
 
   const start = (options: { seed?: string; mix?: MixMode } = {}) => {
@@ -151,6 +188,7 @@ export default function App({
       endedAt: null,
       feedback: null,
     });
+    beginCountdown();
   };
 
   /** 終わったのと同じ5問でもう一度 */
@@ -168,12 +206,16 @@ export default function App({
   };
 
   const handleChange = (value: string) => {
+    // カウントダウン中の入力は捨てる（フライングで計測が始まらないように）
+    if (countdownFrom !== null) return;
     const previous = gameRef.current;
     if (!previous) return;
     updateGame(recordInput(previous, value, now(), { composing: composingRef.current }));
   };
 
   const handleSubmit = () => {
+    // カウントダウン中の Enter は無視する
+    if (countdownFrom !== null) return;
     const current = gameRef.current;
     if (!current) return;
 
@@ -273,7 +315,15 @@ export default function App({
             />
           ) : null}
 
-          {game?.status === 'playing' ? (
+          {game?.status === 'playing' && countdownFrom !== null ? (
+            <CountdownScreen
+              label={countdownLabel(now() - countdownFrom) ?? 'スタート'}
+              problemCount={game.problems.length}
+              firstPrompt={game.problems[0]?.prompt ?? ''}
+            />
+          ) : null}
+
+          {game?.status === 'playing' && countdownFrom === null ? (
             <PlayScreen
               game={game}
               problem={currentProblem(game)}

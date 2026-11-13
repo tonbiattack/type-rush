@@ -1,6 +1,6 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../App';
 import type { Problem } from '../game/types';
 
@@ -32,9 +32,15 @@ function memoryStorage(): Storage {
 
 type Clock = { now: number };
 
-function renderApp(clock: Clock, storage: Storage) {
+function renderApp(clock: Clock, storage: Storage, countdownTotalMs = 20) {
   return render(
-    <App now={() => clock.now} storage={storage} pool={POOL} problemsPerGame={5} />,
+    <App
+      now={() => clock.now}
+      storage={storage}
+      pool={POOL}
+      problemsPerGame={5}
+      countdownTotalMs={countdownTotalMs}
+    />,
   );
 }
 
@@ -58,9 +64,13 @@ describe('App のゲームフロー', () => {
   beforeEach(() => {
     clock = { now: 1000 };
     storage = memoryStorage();
+    // カウントダウンは実際のタイマーで動くので、実時間を使う
+    vi.useRealTimers();
   });
 
   afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
     storage.clear();
   });
 
@@ -68,7 +78,19 @@ describe('App のゲームフロー', () => {
     const user = userEvent.setup();
     renderApp(clock, storage);
     await user.click(screen.getByRole('button', { name: /スタート/ }));
+    await skipCountdown();
     return user;
+  }
+
+  /**
+   * カウントダウンが終わるまで待つ。
+   * テストでは countdownTotalMs を 20ms に短縮している。
+   */
+  async function skipCountdown() {
+    clock.now += 100;
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 80));
+    });
   }
 
   it('スタート画面に遊び方とスタートボタンを表示する', () => {
@@ -227,6 +249,7 @@ describe('App のゲームフロー', () => {
 
     // 同じセットで、遅いタイムを出す
     await user.click(screen.getByRole('button', { name: /同じ5問/ }));
+    await skipCountdown();
     for (let index = 0; index < 5; index += 1) {
       clock.now = 10_000 + (index + 1) * 5000;
       await answerCurrent(user);
@@ -248,6 +271,7 @@ describe('App のゲームフロー', () => {
     }
 
     await user.click(screen.getByRole('button', { name: /同じ5問/ }));
+    await skipCountdown();
 
     const secondRun: string[] = [];
     for (let index = 0; index < 5; index += 1) {
@@ -270,6 +294,7 @@ describe('App のゲームフロー', () => {
     }
 
     await user.click(screen.getByRole('button', { name: /別の問題で/ }));
+    await skipCountdown();
     expect(POOL.map((problem) => problem.prompt)).toContain(currentPrompt());
     expect(screen.getByTestId('question-number').textContent).toContain('/ 5');
     void firstRun;
@@ -287,8 +312,29 @@ describe('App のゲームフロー', () => {
     expect((screen.getByRole('radio', { name: /短め/ }) as HTMLInputElement).checked).toBe(true);
 
     await user.click(screen.getByRole('button', { name: /スタート/ }));
+    await skipCountdown();
     expect(POOL.map((problem) => problem.prompt)).toContain(currentPrompt());
     expect(screen.getByTestId('question-number').textContent).toContain('/ 5');
+  });
+
+  it('スタート直後はカウントダウンが出て、その間は入力を受け付けない', async () => {
+    renderApp(clock, storage);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole('button', { name: /スタート/ }));
+
+    // カウントダウン中は問題文の入力欄がまだ出ていない
+    expect(screen.getByTestId('countdown-label')).toBeTruthy();
+    expect(screen.queryByLabelText('回答入力')).toBeNull();
+
+    // 数字が 3 から始まる
+    expect(['3', '2', '1', 'スタート']).toContain(screen.getByTestId('countdown-label').textContent);
+
+    await skipCountdown();
+
+    // 終わると入力欄が出る
+    expect(screen.queryByTestId('countdown-label')).toBeNull();
+    expect(screen.getByLabelText('回答入力')).toBeTruthy();
   });
 
   it('最後の提出で Enter を連打しても結果画面から即座に再挑戦しない', async () => {
