@@ -455,7 +455,7 @@ describe('自己ベストの保存', () => {
       records: [
         { nope: true },
         {
-          rulesVersion: 'mvp-1',
+          rulesVersion: RULES_VERSION,
           signature: 'sig',
           problemIds: ['a'],
           bestMs: 1000,
@@ -467,6 +467,24 @@ describe('自己ベストの保存', () => {
     });
     const store: BestStore = parseStore(broken);
     expect(store.records).toHaveLength(1);
+  });
+
+  it('旧ルールバージョンの記録は読み込まない', () => {
+    const old = JSON.stringify({
+      version: 1,
+      records: [
+        {
+          rulesVersion: 'mvp-1',
+          signature: 'sig',
+          problemIds: ['a'],
+          bestMs: 1000,
+          averageSimilarity: 1,
+          charactersPerSecond: 1,
+          achievedAt: 'now',
+        },
+      ],
+    });
+    expect(parseStore(old).records).toHaveLength(0);
   });
 
   it('文字数帯ごとにベストを出す', () => {

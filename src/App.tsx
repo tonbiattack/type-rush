@@ -90,7 +90,6 @@ export default function App({
   const composingRef = useRef(false);
   const compositionEndedAtRef = useRef<number | null>(null);
   const warningTimerRef = useRef<number | null>(null);
-  const countdownTimerRef = useRef<number | null>(null);
 
   // 連続 Enter でも最新の状態を参照できるよう、状態の写しを保持する
   const gameRef = useRef<GameState | null>(null);
@@ -101,12 +100,24 @@ export default function App({
     setGame(next);
   };
 
-  // カウントダウン中は数字の更新だけを回す（計測はまだ始めない）
+  // カウントダウン中は数字の更新と終了判定を回す（計測はまだ始めない）
   useEffect(() => {
     if (countdownFrom === null) return;
-    const id = window.setInterval(() => setTick((value) => value + 1), 60);
+
+    const id = window.setInterval(() => {
+      // 経過時間で終了を判定する。setTimeout だけに頼ると、
+      // バックグラウンドタブでタイマーが絞り込まれたときに解除されない。
+      if (now() - countdownFrom >= countdownTotalMs) {
+        setCountdownFrom(null);
+        return;
+      }
+      setTick((value) => value + 1);
+    }, 60);
+
     return () => window.clearInterval(id);
-  }, [countdownFrom]);
+    // now と countdownTotalMs は起動中に変わらない前提
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [countdownFrom, countdownTotalMs]);
 
   // プレイ中だけ経過時間を更新する（計測自体は performance.now() の差分）
   useEffect(() => {
@@ -137,7 +148,6 @@ export default function App({
   useEffect(
     () => () => {
       if (warningTimerRef.current !== null) window.clearTimeout(warningTimerRef.current);
-      if (countdownTimerRef.current !== null) window.clearTimeout(countdownTimerRef.current);
     },
     [],
   );
@@ -148,16 +158,10 @@ export default function App({
     warningTimerRef.current = window.setTimeout(() => setPasteWarning(false), 4000);
   };
 
-  // カウントダウンを開始し、終わったら解除する
+  // カウントダウンを開始する。終了は経過時間を見て上の effect が判定する。
   const beginCountdown = () => {
-    if (countdownTimerRef.current !== null) window.clearTimeout(countdownTimerRef.current);
     setCountdownFrom(now());
     setTick((value) => value + 1);
-    countdownTimerRef.current = window.setTimeout(() => {
-      setCountdownFrom(null);
-      countdownTimerRef.current = null;
-      inputRef.current?.focus();
-    }, countdownTotalMs);
   };
 
   const start = (options: { seed?: string; mix?: MixMode } = {}) => {
