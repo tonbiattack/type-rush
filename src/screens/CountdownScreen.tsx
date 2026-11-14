@@ -1,3 +1,5 @@
+import { RomajiGuide } from '../components/RomajiGuide';
+
 type Props = {
   /** 表示する数字、または「スタート」 */
   label: string;
@@ -42,6 +44,9 @@ export function CountdownScreen({ label, problemCount, firstPrompt }: Props) {
         >
           {firstPrompt}
         </p>
+        <div className="mt-2">
+          <RomajiGuide prompt={firstPrompt} inputLength={0} />
+        </div>
       </div>
     </section>
   );
