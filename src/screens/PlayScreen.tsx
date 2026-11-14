@@ -89,7 +89,7 @@ export function PlayScreen({
             {problem.prompt}
           </p>
           <div className="mt-2.5">
-            <RomajiGuide prompt={problem.prompt} inputLength={Array.from(game.input).length} />
+            <RomajiGuide prompt={problem.prompt} />
           </div>
         </div>
 

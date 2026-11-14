@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PROBLEMS } from '../game/problems';
-import { chunkIndexFor, toRomaji, toRomajiChunks } from '../game/romaji';
+import { toRomaji, toRomajiChunks } from '../game/romaji';
 
 describe('ひらがな → ローマ字', () => {
   it('基本の五十音', () => {
@@ -94,29 +94,5 @@ describe('ひらがな → ローマ字', () => {
       const romaji = toRomaji(problem.prompt);
       expect(romaji).not.toMatch(/[\u3041-\u3096]/);
     }
-  });
-});
-
-describe('chunkIndexFor', () => {
-  const chunks = toRomajiChunks('しゃしん');
-
-  it('チャンクの区切りで進む', () => {
-    expect(chunks).toEqual([
-      { kana: 'しゃ', romaji: 'sha' },
-      { kana: 'し', romaji: 'shi' },
-      { kana: 'ん', romaji: 'n' },
-    ]);
-    expect(chunkIndexFor(0, chunks)).toBe(0);
-    expect(chunkIndexFor(2, chunks)).toBe(1);
-    expect(chunkIndexFor(3, chunks)).toBe(2);
-  });
-
-  it('最後まで打つと末尾を指す', () => {
-    expect(chunkIndexFor(4, chunks)).toBe(3);
-    expect(chunkIndexFor(99, chunks)).toBe(3);
-  });
-
-  it('空のチャンク列では0', () => {
-    expect(chunkIndexFor(0, [])).toBe(0);
   });
 });
