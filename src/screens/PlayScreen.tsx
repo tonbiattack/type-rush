@@ -1,4 +1,5 @@
 import type { RefObject } from 'react';
+import { RomajiGuide } from '../components/RomajiGuide';
 import { Stamp } from '../components/Stamp';
 import { elapsedMs } from '../game/engine';
 import { formatClock, formatSimilarity } from '../game/format';
@@ -79,7 +80,7 @@ export function PlayScreen({
 
       {/* お題・入力欄・判定はひとつながりの仕事。まとめて画面中央に置く。 */}
       <div className="flex flex-1 flex-col justify-center py-6">
-        <div className="border-y border-rule py-9">
+        <div className="border-y border-rule py-8">
           <p
             className="text-[1.55rem] leading-[1.75] tracking-[0.01em] sm:text-[2.1rem] sm:leading-[1.7]"
             style={{ wordBreak: 'break-word' }}
@@ -87,6 +88,9 @@ export function PlayScreen({
           >
             {problem.prompt}
           </p>
+          <div className="mt-2.5">
+            <RomajiGuide prompt={problem.prompt} inputLength={Array.from(game.input).length} />
+          </div>
         </div>
 
         <label className="sr-only" htmlFor="answer">
