@@ -208,16 +208,3 @@ export function toRomaji(prompt: string): string {
     .join('');
 }
 
-/**
- * 入力済みの文字数を、表示用のチャンク境界に丸める。
- * 途中まで打った拗音は「まだ」扱いにして、次に打つ音をはっきり見せる。
- */
-export function chunkIndexFor(inputLength: number, chunks: RomajiChunk[]): number {
-  let consumed = 0;
-  for (let index = 0; index < chunks.length; index += 1) {
-    consumed += Array.from(chunks[index].kana).length;
-    if (inputLength < consumed) return index;
-  }
-  return chunks.length;
-}
-
