@@ -115,11 +115,11 @@ export function PlayScreen({
           rows={2}
           aria-describedby="answer-help"
           className="mt-4 w-full resize-none border border-ink/40 bg-white/60 px-3 py-2.5 text-xl leading-relaxed text-ink outline-none transition-colors placeholder:text-ink-3/70 focus:border-ink sm:text-2xl"
-          placeholder="お題を入力して Enter"
+          placeholder="ひらがな または ローマ字で入力して Enter"
         />
 
         <p id="answer-help" className="mt-2 text-note text-ink-3">
-          誤字は気にせず、速く。Enter で判定、不合格ならそのまま直して再提出できます。貼り付けは使えません。
+          誤字は気にせず、速く。ひらがなでもローマ字でも判定します。Enter で判定、不合格ならそのまま直して再提出できます。貼り付けは使えません。
         </p>
 
         <div className="mt-4 min-h-[4.5rem]" aria-live="polite" role="status">

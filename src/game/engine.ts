@@ -1,4 +1,4 @@
-import { similarityJudge, type Judge } from './judge';
+import { multiScriptJudge, type Judge } from './judge';
 import type { GameState, Problem, SubmitOutcome } from './types';
 
 export function createGame(problems: Problem[]): GameState {
@@ -63,7 +63,7 @@ export type SubmitResult = {
 export function submitAnswer(
   state: GameState,
   now: number,
-  judge: Judge = similarityJudge,
+  judge: Judge = multiScriptJudge,
 ): SubmitResult {
   const problem = currentProblem(state);
   if (state.status !== 'playing' || !problem) {

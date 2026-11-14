@@ -1,8 +1,10 @@
+import { toRomaji } from './romaji';
+
 /**
  * 判定ルール。MVP では AI を使わず、文字列の近さだけで合否を決める。
  * ルールを変更したら RULES_VERSION を上げ、ベストタイムの比較条件を分ける。
  */
-export const RULES_VERSION = 'mvp-1';
+export const RULES_VERSION = 'mvp-2';
 export const SIMILARITY_THRESHOLD = 0.85;
 export const MIN_INPUT_LENGTH_RATIO = 0.8;
 export const PROBLEMS_PER_GAME = 5;
@@ -13,6 +15,9 @@ const EPSILON = 1e-9;
 export type JudgeFailureReason = 'empty' | 'too-short' | 'low-similarity';
 export type JudgeReason = 'passed' | JudgeFailureReason;
 
+/** 入力がどちらの表記として合格したか */
+export type JudgeScript = 'kana' | 'romaji';
+
 export type JudgeResult = {
   passed: boolean;
   /** 0〜1。空文字との比較は 0 */
@@ -20,6 +25,8 @@ export type JudgeResult = {
   normalizedPrompt: string;
   normalizedInput: string;
   reason: JudgeReason;
+  /** 合格した表記。不合格なら null */
+  matchedAs: JudgeScript | null;
 };
 
 /**
@@ -89,49 +96,101 @@ export class SimilarityJudge implements Judge {
   evaluate(prompt: string, input: string): JudgeResult {
     const normalizedPrompt = normalizeText(prompt);
     const normalizedInput = normalizeText(input);
-    const promptLength = Array.from(normalizedPrompt).length;
-    const inputLength = Array.from(normalizedInput).length;
 
-    if (promptLength === 0 || inputLength === 0) {
-      return {
-        passed: false,
-        similarity: 0,
-        normalizedPrompt,
-        normalizedInput,
-        reason: 'empty',
-      };
-    }
-
-    const similarity = similarityScore(normalizedPrompt, normalizedInput);
-
-    if (!hasEnoughLength(promptLength, inputLength)) {
-      return {
-        passed: false,
-        similarity,
-        normalizedPrompt,
-        normalizedInput,
-        reason: 'too-short',
-      };
-    }
-
-    if (similarity + EPSILON < SIMILARITY_THRESHOLD) {
-      return {
-        passed: false,
-        similarity,
-        normalizedPrompt,
-        normalizedInput,
-        reason: 'low-similarity',
-      };
-    }
-
-    return {
-      passed: true,
-      similarity,
-      normalizedPrompt,
-      normalizedInput,
-      reason: 'passed',
-    };
+    return judgeAgainst(normalizedPrompt, normalizedInput, 'kana');
   }
 }
 
+/**
+ * ひらがな・ローマ字の両方の正解と比べ、良いほうを採用する判定器。
+ *
+ * お題はひらがなだが、ローマ字で打ち込む人も同じように遊べるようにする。
+ * 合格条件（類似度・長さ）はどちらの表記でも同じ。
+ */
+export class MultiScriptJudge implements Judge {
+  readonly name = 'multi-script';
+
+  evaluate(prompt: string, input: string): JudgeResult {
+    const normalizedPrompt = normalizeText(prompt);
+    const normalizedInput = normalizeText(input);
+
+    const asKana = judgeAgainst(normalizedPrompt, normalizedInput, 'kana');
+    const asRomaji = judgeAgainst(
+      normalizeRomaji(toRomaji(normalizedPrompt)),
+      normalizeRomaji(normalizedInput),
+      'romaji',
+    );
+
+    // 合格している方を優先し、どちらも不合格なら類似度の高い方を返す
+    if (asKana.passed) return asKana;
+    if (asRomaji.passed) return asRomaji;
+    return asRomaji.similarity > asKana.similarity ? asRomaji : asKana;
+  }
+}
+
+/**
+ * ローマ字の表記ゆれを吸収する。
+ * 大文字・空白・アポストロフィ・ハイフンは無視する（shi/si のような流派差は対象外）。
+ */
+export function normalizeRomaji(value: string): string {
+  return normalizeText(value)
+    .toLowerCase()
+    .replace(/[\s'’\-ー]/g, '');
+}
+
+/** 正解文字列と入力文字列を、指定した表記として判定する */
+function judgeAgainst(
+  expected: string,
+  actual: string,
+  script: JudgeScript,
+): JudgeResult {
+  const promptLength = Array.from(expected).length;
+  const inputLength = Array.from(actual).length;
+
+  if (promptLength === 0 || inputLength === 0) {
+    return {
+      passed: false,
+      similarity: 0,
+      normalizedPrompt: expected,
+      normalizedInput: actual,
+      reason: 'empty',
+      matchedAs: null,
+    };
+  }
+
+  const similarity = similarityScore(expected, actual);
+
+  if (!hasEnoughLength(promptLength, inputLength)) {
+    return {
+      passed: false,
+      similarity,
+      normalizedPrompt: expected,
+      normalizedInput: actual,
+      reason: 'too-short',
+      matchedAs: null,
+    };
+  }
+
+  if (similarity + EPSILON < SIMILARITY_THRESHOLD) {
+    return {
+      passed: false,
+      similarity,
+      normalizedPrompt: expected,
+      normalizedInput: actual,
+      reason: 'low-similarity',
+      matchedAs: null,
+    };
+  }
+
+  return {
+    passed: true,
+    similarity,
+    normalizedPrompt: expected,
+    normalizedInput: actual,
+    reason: 'passed',
+    matchedAs: script,
+  };
+}
+
 export const similarityJudge = new SimilarityJudge();
+export const multiScriptJudge = new MultiScriptJudge();
