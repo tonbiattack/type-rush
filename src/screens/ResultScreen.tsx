@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { RankBadge } from '../components/RankBadge';
 import { Stamp } from '../components/Stamp';
 import type { GameStats } from '../game/engine';
-import { formatDateTime, formatSimilarity, formatStats } from '../game/format';
+import { formatDateTime, formatMs, formatSimilarity, formatStats } from '../game/format';
 import type { MixMode } from '../game/difficulty';
 import type { BestRecord } from '../game/storage';
 import type { GameState } from '../game/types';
@@ -45,6 +45,15 @@ export function ResultScreen({
   const formatted = formatStats(stats);
   const mountedAt = useRef(now());
   const canRetry = () => now() - mountedAt.current >= RETRY_KEY_GUARD_MS;
+
+  // 一番時間を使った問題。1問だけ極端に遅いと総時間が伸びるので、そこを名指しする。
+  const slowest = game.results.reduce<{ index: number; durationMs: number } | null>(
+    (worst, result, index) =>
+      worst === null || result.durationMs > worst.durationMs
+        ? { index, durationMs: result.durationMs }
+        : worst,
+    null,
+  );
 
   return (
     <section aria-labelledby="result-heading" className="flex flex-1 flex-col">
@@ -103,16 +112,19 @@ export function ResultScreen({
           <table className="mt-1 w-full border-collapse text-left text-xs">
             <thead>
               <tr className="border-b border-rule text-ink-3">
-                <th scope="col" className="py-1.5 pr-2 font-normal">
+                <th scope="col" className="whitespace-nowrap py-1.5 pr-2 font-normal">
                   #
                 </th>
                 <th scope="col" className="py-1.5 pr-2 font-normal">
                   お題
                 </th>
-                <th scope="col" className="py-1.5 pr-2 text-right font-normal">
+                <th scope="col" className="whitespace-nowrap py-1.5 pr-2 text-right font-normal">
+                  時間
+                </th>
+                <th scope="col" className="whitespace-nowrap py-1.5 pr-2 text-right font-normal">
                   提出
                 </th>
-                <th scope="col" className="py-1.5 text-right font-normal">
+                <th scope="col" className="whitespace-nowrap py-1.5 text-right font-normal">
                   一致率
                 </th>
               </tr>
@@ -122,6 +134,9 @@ export function ResultScreen({
                 <tr key={result.problemId} className="border-b border-rule align-top">
                   <td className="py-1.5 pr-2 font-mono tabular-nums text-ink-3">{index + 1}</td>
                   <td className="py-1.5 pr-2 leading-relaxed">{result.prompt}</td>
+                  <td className="py-1.5 pr-2 text-right font-mono tabular-nums">
+                    {formatMs(result.durationMs)}
+                  </td>
                   <td className="py-1.5 pr-2 text-right font-mono tabular-nums">{result.attempts}</td>
                   <td className="py-1.5 text-right font-mono tabular-nums">
                     {formatSimilarity(result.similarity)}
@@ -130,6 +145,12 @@ export function ResultScreen({
               ))}
             </tbody>
           </table>
+          {slowest ? (
+            // どこで時間を使ったかが分かると、次の1回で直す場所が決まる。
+            <p className="mt-2 text-note leading-relaxed text-ink-3" data-testid="slowest">
+              いちばん時間がかかったのは {slowest.index + 1}問目（{formatMs(slowest.durationMs)}秒）。
+            </p>
+          ) : null}
         </div>
 
         <div>

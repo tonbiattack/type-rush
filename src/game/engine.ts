@@ -49,7 +49,11 @@ export function recordInput(
       ? now
       : state.startedAt;
 
-  return { ...state, input: value, startedAt };
+  // 合格の判子は「次の問題へ進んだ」合図なので、打ち始めたら消す。
+  // 不合格の判子は直すための案内なので、入力中も残す。
+  const feedback = state.feedback?.kind === 'accepted' && value !== '' ? null : state.feedback;
+
+  return { ...state, input: value, startedAt, feedback };
 }
 
 export type SubmitResult = {
@@ -84,11 +88,21 @@ export function submitAnswer(
         ...state,
         startedAt,
         attempts,
-        feedback: { similarity: judged.similarity, attempt: attempts },
+        feedback: {
+          kind: 'rejected',
+          similarity: judged.similarity,
+          attempt: attempts,
+          reason: judged.reason === 'too-short' ? 'too-short' : 'low-similarity',
+        },
       },
       outcome: 'rejected',
     };
   }
+
+  // この問題にかかった時間。1問目は計測開始から、2問目以降は前の合格から数える。
+  const previousAcceptedAt = state.results[state.results.length - 1]?.acceptedAt;
+  const problemStartedAt = previousAcceptedAt ?? startedAt;
+  const durationMs = Math.max(0, now - problemStartedAt);
 
   const results = [
     ...state.results,
@@ -98,6 +112,8 @@ export function submitAnswer(
       acceptedInput: judged.normalizedInput,
       similarity: judged.similarity,
       attempts,
+      durationMs,
+      acceptedAt: now,
     },
   ];
 
@@ -110,7 +126,15 @@ export function submitAnswer(
       results,
       attempts: 0,
       input: '',
-      feedback: null,
+      // 合格の判子は次の問題に重ねて出す。打ち始めたら recordInput が消す。
+      feedback: completed
+        ? null
+        : {
+            kind: 'accepted',
+            similarity: judged.similarity,
+            attempt: attempts,
+            problemMs: durationMs,
+          },
       currentIndex: completed ? state.currentIndex : state.currentIndex + 1,
       status: completed ? 'result' : 'playing',
       endedAt: completed ? now : null,

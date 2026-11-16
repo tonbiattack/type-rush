@@ -137,7 +137,8 @@ describe('App のゲームフロー', () => {
     await user.keyboard('{Enter}');
 
     expect(currentPrompt()).toBe(first);
-    expect(screen.getByTestId('feedback').textContent).toMatch(/一致率|不合格|もう少し/);
+    // 短すぎる提出には「短い」と返す（一致率だけでは次に何をすればよいか分からない）
+    expect(screen.getByTestId('feedback').textContent).toMatch(/短い/);
     expect(screen.getByRole('img', { name: /不合格/ })).toBeTruthy();
     expect((textarea as HTMLTextAreaElement).value).toBe('あいうえ');
 
@@ -351,6 +352,86 @@ describe('App のゲームフロー', () => {
     await user.keyboard('{Enter}{Enter}');
 
     expect(screen.getByRole('heading', { level: 2 }).textContent).toMatch(/5問クリア/);
+  });
+
+  it('不合格の理由を、次にやることとして返す', async () => {
+    const user = await startGame();
+    const textarea = screen.getByLabelText('回答入力');
+    const first = currentPrompt();
+
+    // 長さは足りているが文字が違う → 直す
+    await user.type(textarea, 'あ'.repeat(first.length));
+    clock.now = 3000;
+    await user.keyboard('{Enter}');
+    expect(screen.getByTestId('feedback').textContent).toMatch(/文字が違う/);
+
+    // 長さが足りない → 最後まで打つ
+    await user.clear(textarea);
+    await user.type(textarea, 'あ');
+    clock.now = 4000;
+    await user.keyboard('{Enter}');
+    expect(screen.getByTestId('feedback').textContent).toMatch(/短い/);
+  });
+
+  it('合格すると次の問題に合格の判子が出て、打ち始めると消える', async () => {
+    const user = await startGame();
+    const textarea = screen.getByLabelText('回答入力');
+
+    await user.type(textarea, currentPrompt());
+    clock.now = 2000;
+    await user.keyboard('{Enter}');
+
+    expect(screen.getByRole('img', { name: /合格/ })).toBeTruthy();
+
+    await user.type(textarea, 'あ');
+    expect(screen.queryByRole('img', { name: /合格/ })).toBeNull();
+  });
+
+  it('再挑戦のカウントダウンは数字を出さず、すぐ始まる', async () => {
+    const user = await startGame();
+    for (let index = 0; index < 5; index += 1) {
+      clock.now = 1000 + (index + 1) * 2000;
+      await answerCurrent(user);
+    }
+
+    await user.click(screen.getByRole('button', { name: /同じ5問/ }));
+
+    // 再挑戦では 3・2・1 を出さない
+    expect(screen.getByTestId('countdown-label').textContent).toBe('スタート');
+    expect(screen.queryByTestId('countdown-hint')).toBeNull();
+
+    await skipCountdown();
+    expect(screen.queryByTestId('countdown-label')).toBeNull();
+    expect(screen.getByLabelText('回答入力')).toBeTruthy();
+  });
+
+  it('結果画面に問題ごとの時間と、一番時間がかかった問題を出す', async () => {
+    const user = await startGame();
+
+    // 3問目だけ極端に遅くする
+    for (let index = 0; index < 5; index += 1) {
+      clock.now = 1000 + (index + 1) * 1000 + (index === 2 ? 5000 : 0);
+      await answerCurrent(user);
+    }
+
+    expect(screen.getByTestId('slowest').textContent).toMatch(/3問目/);
+    expect(screen.getByTestId('slowest').textContent).toMatch(/6\.00秒/);
+  });
+
+  it('スタート画面の称号表に、ベストの位置を印として出す', async () => {
+    const user = await startGame();
+    // 55文字を 20秒で → 約2.75文字/秒 → 「打鍵の達人」
+    for (let index = 0; index < 5; index += 1) {
+      clock.now = 1000 + (index + 1) * 4000;
+      await answerCurrent(user);
+    }
+
+    // 結果画面からスタート画面へは戻れないので、再マウントして確認する
+    cleanup();
+    renderApp(clock, storage);
+
+    const current = screen.getByTestId('rank-ladder-current');
+    expect(current.textContent).toContain('打鍵の達人');
   });
 
   it('リロードでゲームは初期化され、ベストは保持される', async () => {
