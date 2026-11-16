@@ -10,6 +10,8 @@ type Props = {
   mix: MixMode;
   mixLabels: Record<MixMode, string>;
   difficulties: Difficulty[];
+  /** 共有リンクから受け取ったセット。あれば次のプレイでその5問を出す */
+  sharedSeed?: string | null;
   onMixChange: (mix: MixMode) => void;
   onStart: () => void;
 };
@@ -21,6 +23,7 @@ export function StartScreen({
   mix,
   mixLabels,
   difficulties,
+  sharedSeed,
   onMixChange,
   onStart,
 }: Props) {
@@ -36,6 +39,16 @@ export function StartScreen({
         AIへの指示風のひらがな短文が{problemCount}問出ます。85%以上一致していれば合格で次の問題へ。
         誤字を直した時間も合計タイムに含まれます。
       </p>
+
+      {sharedSeed ? (
+        // 共有リンクで来た人に「同じ5問が出る」ことを伝える。押す前に分かるようにする。
+        <p
+          className="mt-3 border-l-2 border-shu py-1 pl-3 text-sm text-ink"
+          data-testid="shared-set"
+        >
+          共有された5問を出します（セット {sharedSeed}）。タイムをそのまま比べられます。
+        </p>
+      ) : null}
 
       <fieldset className="mt-6">
         <legend className="text-xs text-ink-3">文章の長さ</legend>

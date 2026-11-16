@@ -29,6 +29,10 @@ type Props = {
   onRetryNewSet: () => void;
   /** スタート画面へ戻る */
   onGoHome: () => void;
+  /** スコアを共有する（クリップボードにコピー） */
+  onShare: () => void;
+  /** 共有の結果。コピーできたか */
+  shareState: 'idle' | 'copied' | 'failed';
 };
 
 export function ResultScreen({
@@ -44,6 +48,8 @@ export function ResultScreen({
   onRetrySameSet,
   onRetryNewSet,
   onGoHome,
+  onShare,
+  shareState,
 }: Props) {
   const formatted = formatStats(stats);
   const mountedAt = useRef(now());
@@ -222,6 +228,32 @@ export function ResultScreen({
           <span className="text-base font-bold">ホームに戻る</span>
         </button>
       </div>
+
+      {/* 共有は遊び直す流れの外に置く。押した結果はその場に出す。 */}
+      <div className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-2">
+        <button
+          type="button"
+          onClick={onShare}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && event.repeat) event.preventDefault();
+          }}
+          className="inline-flex items-baseline gap-2 border border-rule px-4 py-2 text-left text-ink-2 transition-colors hover:border-ink hover:text-ink"
+        >
+          <span className="text-sm font-bold">スコアをコピー</span>
+        </button>
+        <p
+          className="text-note leading-relaxed text-ink-3"
+          role="status"
+          data-testid="share-status"
+        >
+          {shareState === 'copied'
+            ? 'コピーしました。貼り付けて共有できます。'
+            : shareState === 'failed'
+              ? 'コピーできませんでした。ブラウザの設定を確認してください。'
+              : 'スコアと、同じ5問を遊べる URL をコピーします。'}
+        </p>
+      </div>
+
       <p className="mt-2 text-note leading-relaxed text-ink-3">
         同じ5問なら条件がそろっているので、タイムをそのまま比べられます。
         {seed ? <span className="ml-1 font-mono text-ink-3">セット {seed}</span> : null}
