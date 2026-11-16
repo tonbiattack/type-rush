@@ -217,6 +217,14 @@ async function main() {
   await shoot(cdp, 'result-desktop', 1280, 1100);
   await shoot(cdp, 'result-mobile', 390, 1200);
 
+  // 「ホームに戻る」でスタート画面に戻り、ベストが残っていることを撮る
+  await evaluate(
+    cdp,
+    `[...document.querySelectorAll('button')].find((b) => b.textContent.includes('ホームに戻る')).click()`,
+  );
+  await sleep(500);
+  await shoot(cdp, 'home-after-result', 1280, 1000);
+
   child.kill();
 }
 

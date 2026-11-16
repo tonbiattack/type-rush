@@ -220,6 +220,21 @@ export default function App({
     start({ mix, mode: 'retry' });
   };
 
+  /**
+   * スタート画面へ戻る。
+   * 記録は結果画面を出した時点で保存済みなので、ここでは状態を捨てるだけでよい。
+   * シードも消す（戻ったあとに「同じ5問」が残っていると、何のセットか分からなくなる）。
+   */
+  const goHome = () => {
+    updateGame(null);
+    setSeed(null);
+    setNewBest(null);
+    setPasteWarning(false);
+    setCountdownFrom(null);
+    composingRef.current = false;
+    compositionEndedAtRef.current = null;
+  };
+
   const handleChange = (value: string) => {
     // カウントダウン中の入力は捨てる（フライングで計測が始まらないように）
     if (countdownFrom !== null) return;
@@ -372,6 +387,7 @@ export default function App({
               now={now}
               onRetrySameSet={retrySameSet}
               onRetryNewSet={retryNewSet}
+              onGoHome={goHome}
             />
           ) : null}
         </main>
