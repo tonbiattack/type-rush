@@ -1,4 +1,5 @@
 import { RomajiGuide } from '../components/RomajiGuide';
+import type { CountdownMode } from '../game/countdown';
 
 type Props = {
   /** 表示する数字、または「スタート」 */
@@ -7,14 +8,17 @@ type Props = {
   problemCount: number;
   /** 最初の問題文（心の準備用に薄く見せる） */
   firstPrompt: string;
+  /** 初回は数字を出し、再挑戦は「スタート」だけを出す */
+  mode?: CountdownMode;
 };
 
 /**
  * 開始前のカウントダウン。
  * 数字だけを大きく出し、他の情報は控えめにして視線を奪わない。
  */
-export function CountdownScreen({ label, problemCount, firstPrompt }: Props) {
+export function CountdownScreen({ label, problemCount, firstPrompt, mode = 'full' }: Props) {
   const isGo = label === 'スタート';
+  const isRetry = mode === 'retry';
 
   return (
     <section aria-labelledby="countdown-heading" className="flex flex-1 flex-col justify-center">
@@ -32,9 +36,12 @@ export function CountdownScreen({ label, problemCount, firstPrompt }: Props) {
         >
           {label}
         </p>
-        <p className="mt-4 text-xs text-ink-3" data-testid="countdown-hint">
-          {isGo ? '入力してください' : `${problemCount}問`}
-        </p>
+        {/* 再挑戦は結果画面で「同じ5問」と伝えているので、ここでは何も足さない。 */}
+        {isRetry ? null : (
+          <p className="mt-4 text-xs text-ink-3" data-testid="countdown-hint">
+            {isGo ? '入力してください' : `${problemCount}問`}
+          </p>
+        )}
       </div>
 
       <div className="border-y border-rule py-5 opacity-50">

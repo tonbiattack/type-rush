@@ -111,7 +111,7 @@ export function StartScreen({
         <div>
           <h3 className="border-b border-ink pb-1 text-sm font-bold">遊び方</h3>
           <ol className="mt-2 space-y-1 text-xs leading-relaxed text-ink-2">
-            <li>お題を見ながら、ひらがなで入力します。</li>
+            <li>お題を見ながら、ひらがな または ローマ字で入力します。</li>
             <li>最初の入力から計測が始まります。</li>
             <li>Enter で判定。合格なら次の問題へ。</li>
             <li>不合格でも止まらず、直して再提出できます。</li>
@@ -125,8 +125,13 @@ export function StartScreen({
         <div>
           <h3 className="border-b border-ink pb-1 text-sm font-bold">称号の目安</h3>
           <div className="mt-1">
-            <RankLadder />
+            <RankLadder currentCps={best?.charactersPerSecond} />
           </div>
+          <p className="mt-2 text-note leading-relaxed text-ink-3">
+            {best
+              ? '塗ってある段が、いまのベストの位置です。'
+              : '1回遊ぶと、いまの位置がここに出ます。'}
+          </p>
         </div>
       </div>
     </section>

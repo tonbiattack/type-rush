@@ -5,7 +5,8 @@ import {
   problemsForDifficulty,
   type MixMode,
 } from './game/difficulty';
-import { COUNTDOWN_TOTAL_MS, countdownLabel } from './game/countdown';
+import { COUNTDOWN_TOTAL_MS, RETRY_COUNTDOWN_TOTAL_MS, countdownLabel } from './game/countdown';
+import type { CountdownMode } from './game/countdown';
 import { currentProblem, recordInput, submitAnswer, summarize } from './game/engine';
 import { isBlockedInputType, shouldSubmitOnEnter } from './game/ime';
 import { RULES_VERSION } from './game/judge';
@@ -85,6 +86,15 @@ export default function App({
    * 計測用の startedAt（最初の入力）とは別物。
    */
   const [countdownFrom, setCountdownFrom] = useState<number | null>(null);
+  /**
+   * 初回は 3・2・1 を出し、再挑戦は「スタート」だけで始める。
+   * 同じ問題をもう一度打つだけなので、待たせるほど熱が冷める。
+   */
+  const [countdownMode, setCountdownMode] = useState<CountdownMode>('full');
+  const countdownMs =
+    countdownMode === 'retry'
+      ? Math.min(RETRY_COUNTDOWN_TOTAL_MS, countdownTotalMs)
+      : countdownTotalMs;
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const composingRef = useRef(false);
@@ -107,7 +117,7 @@ export default function App({
     const id = window.setInterval(() => {
       // 経過時間で終了を判定する。setTimeout だけに頼ると、
       // バックグラウンドタブでタイマーが絞り込まれたときに解除されない。
-      if (now() - countdownFrom >= countdownTotalMs) {
+      if (now() - countdownFrom >= countdownMs) {
         setCountdownFrom(null);
         return;
       }
@@ -115,9 +125,9 @@ export default function App({
     }, 60);
 
     return () => window.clearInterval(id);
-    // now と countdownTotalMs は起動中に変わらない前提
+    // now と countdownMs は起動中に変わらない前提
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [countdownFrom, countdownTotalMs]);
+  }, [countdownFrom, countdownMs]);
 
   // プレイ中だけ経過時間を更新する（計測自体は performance.now() の差分）
   useEffect(() => {
@@ -159,12 +169,13 @@ export default function App({
   };
 
   // カウントダウンを開始する。終了は経過時間を見て上の effect が判定する。
-  const beginCountdown = () => {
+  const beginCountdown = (mode: CountdownMode) => {
+    setCountdownMode(mode);
     setCountdownFrom(now());
     setTick((value) => value + 1);
   };
 
-  const start = (options: { seed?: string; mix?: MixMode } = {}) => {
+  const start = (options: { seed?: string; mix?: MixMode; mode?: CountdownMode } = {}) => {
     const nextMix = options.mix ?? mix;
     // 初回もシード経由で選ぶ。そうしないと「同じセット」を再現できない。
     const nextSeed = options.seed ?? formatSeed(randomSeed(random));
@@ -192,21 +203,21 @@ export default function App({
       endedAt: null,
       feedback: null,
     });
-    beginCountdown();
+    beginCountdown(options.mode ?? 'full');
   };
 
   /** 終わったのと同じ5問でもう一度 */
   const retrySameSet = () => {
     if (seed === null) {
-      start();
+      start({ mode: 'retry' });
       return;
     }
-    start({ seed, mix });
+    start({ seed, mix, mode: 'retry' });
   };
 
   /** 新しいセットで再挑戦 */
   const retryNewSet = () => {
-    start({ mix });
+    start({ mix, mode: 'retry' });
   };
 
   const handleChange = (value: string) => {
@@ -321,9 +332,12 @@ export default function App({
 
           {game?.status === 'playing' && countdownFrom !== null ? (
             <CountdownScreen
-              label={countdownLabel(now() - countdownFrom) ?? 'スタート'}
+              label={
+                countdownLabel(now() - countdownFrom, countdownMode, countdownMs) ?? 'スタート'
+              }
               problemCount={game.problems.length}
               firstPrompt={game.problems[0]?.prompt ?? ''}
+              mode={countdownMode}
             />
           ) : null}
 

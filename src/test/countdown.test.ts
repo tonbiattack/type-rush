@@ -4,8 +4,10 @@ import {
   COUNTDOWN_STEP_MS,
   COUNTDOWN_STEPS,
   COUNTDOWN_TOTAL_MS,
+  RETRY_COUNTDOWN_TOTAL_MS,
   countdownLabel,
   countdownRemaining,
+  countdownTotalMs,
   isCountdownDone,
 } from '../game/countdown';
 
@@ -50,5 +52,25 @@ describe('開始前のカウントダウン', () => {
   it('各ステップが目視できる長さになっている', () => {
     expect(COUNTDOWN_STEP_MS).toBeGreaterThanOrEqual(400);
     expect(COUNTDOWN_STEP_MS).toBeLessThanOrEqual(1200);
+  });
+});
+
+describe('再挑戦のカウントダウン', () => {
+  it('数字を出さず「スタート」だけで始まる', () => {
+    expect(countdownLabel(0, 'retry')).toBe('スタート');
+    expect(countdownLabel(RETRY_COUNTDOWN_TOTAL_MS - 1, 'retry')).toBe('スタート');
+    expect(countdownLabel(RETRY_COUNTDOWN_TOTAL_MS, 'retry')).toBeNull();
+  });
+
+  it('初回より短い', () => {
+    expect(countdownTotalMs('retry')).toBeLessThan(countdownTotalMs('full'));
+    expect(countdownTotalMs('full')).toBe(COUNTDOWN_TOTAL_MS);
+  });
+
+  it('残り時間と終了判定が表示と一致する', () => {
+    expect(countdownRemaining(0, 'retry')).toBe(RETRY_COUNTDOWN_TOTAL_MS);
+    expect(countdownRemaining(RETRY_COUNTDOWN_TOTAL_MS, 'retry')).toBe(0);
+    expect(isCountdownDone(RETRY_COUNTDOWN_TOTAL_MS - 1, 'retry')).toBe(false);
+    expect(isCountdownDone(RETRY_COUNTDOWN_TOTAL_MS, 'retry')).toBe(true);
   });
 });

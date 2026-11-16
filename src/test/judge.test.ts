@@ -322,6 +322,36 @@ describe('ゲームエンジン', () => {
     expect(elapsedMs(result.state, 4000)).toBe(3000);
   });
 
+  it('合格すると次の問題に合格の判子を残す', () => {
+    let state = createGame(problems);
+    state = recordInput(state, problems[0].prompt, 1000);
+    const result = submitAnswer(state, 2000);
+
+    expect(result.outcome).toBe('accepted');
+    expect(result.state.feedback?.kind).toBe('accepted');
+    expect(result.state.feedback?.similarity).toBeCloseTo(1);
+  });
+
+  it('合格の判子は打ち始めると消える', () => {
+    let state = createGame(problems);
+    state = recordInput(state, problems[0].prompt, 1000);
+    state = submitAnswer(state, 2000).state;
+    expect(state.feedback?.kind).toBe('accepted');
+
+    state = recordInput(state, 'さ', 2500);
+    expect(state.feedback).toBeNull();
+  });
+
+  it('不合格の判子は入力しても残る', () => {
+    let state = createGame(problems);
+    state = recordInput(state, 'あいうえ', 1000);
+    state = submitAnswer(state, 1500).state;
+    expect(state.feedback?.kind).toBe('rejected');
+
+    state = recordInput(state, 'あいうえお', 2000);
+    expect(state.feedback?.kind).toBe('rejected');
+  });
+
   it('全問クリアで result になりタイマーが止まる', () => {
     let state = createGame(problems);
     state = recordInput(state, problems[0].prompt, 1000);

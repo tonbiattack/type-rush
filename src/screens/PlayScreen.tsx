@@ -2,7 +2,7 @@ import type { RefObject } from 'react';
 import { RomajiGuide } from '../components/RomajiGuide';
 import { Stamp } from '../components/Stamp';
 import { elapsedMs } from '../game/engine';
-import { formatClock, formatSimilarity } from '../game/format';
+import { formatClock, formatMs, formatSimilarity } from '../game/format';
 import type { GameState, Problem } from '../game/types';
 
 type Props = {
@@ -119,11 +119,25 @@ export function PlayScreen({
         />
 
         <p id="answer-help" className="mt-2 text-note text-ink-3">
-          誤字は気にせず、速く。ひらがなでもローマ字でも判定します。Enter で判定、不合格ならそのまま直して再提出できます。貼り付けは使えません。
+          Enter で判定。不合格なら直して再提出できます。
         </p>
 
         <div className="mt-4 min-h-[4.5rem]" aria-live="polite" role="status">
-          {feedback ? (
+          {feedback?.kind === 'accepted' ? (
+            // 合格の判子は「次の問題へ進んだ」合図。打ち始めると消えるので、
+            // 次の問題を打つ手を止めない。添えるのは一致率ではなく所要時間
+            // （このゲームのスコアは時間なので、速かったかをその場で返す）。
+            <div className="flex items-center gap-4">
+              <Stamp
+                verdict="合格"
+                detail={
+                  feedback.problemMs === undefined
+                    ? formatSimilarity(feedback.similarity)
+                    : `${formatMs(feedback.problemMs)}秒`
+                }
+              />
+            </div>
+          ) : feedback ? (
             <div className="flex items-center gap-4">
               <Stamp
                 verdict="不合格"
@@ -131,9 +145,9 @@ export function PlayScreen({
                 tone="retry"
               />
               <p className="text-sm leading-relaxed text-ink-2" data-testid="feedback">
-                {feedback.attempt}回目の提出。もう少し入力してみよう。
-                <br />
-                入力を直して Enter で再提出できます。
+                {feedback.reason === 'too-short'
+                  ? 'まだ短い。お題の最後まで打ってから Enter。'
+                  : '文字が違う。お題と見比べて直してから Enter。'}
               </p>
             </div>
           ) : pasteWarning ? (
