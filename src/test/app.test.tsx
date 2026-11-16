@@ -418,6 +418,37 @@ describe('App のゲームフロー', () => {
     expect(screen.getByTestId('slowest').textContent).toMatch(/6\.00秒/);
   });
 
+  it('結果画面からスタート画面へ戻れる', async () => {
+    const user = await startGame();
+    for (let index = 0; index < 5; index += 1) {
+      clock.now = 1000 + (index + 1) * 2000;
+      await answerCurrent(user);
+    }
+    expect(screen.getByRole('heading', { level: 2 }).textContent).toMatch(/5問クリア/);
+
+    await user.click(screen.getByRole('button', { name: /ホームに戻る/ }));
+
+    // スタート画面に戻り、保存済みのベストがそのまま出ている
+    expect(screen.getByRole('button', { name: /スタート/ })).toBeTruthy();
+    expect(screen.getByTestId('start-best').textContent).toContain('8.00');
+    expect(screen.queryByTestId('total-time')).toBeNull();
+  });
+
+  it('スタート画面へ戻ったあと、もう一度遊べる', async () => {
+    const user = await startGame();
+    for (let index = 0; index < 5; index += 1) {
+      clock.now = 1000 + (index + 1) * 2000;
+      await answerCurrent(user);
+    }
+
+    await user.click(screen.getByRole('button', { name: /ホームに戻る/ }));
+    await user.click(screen.getByRole('button', { name: /スタート/ }));
+    await skipCountdown();
+
+    expect(screen.getByTestId('question-number').textContent).toContain('/ 5');
+    expect(screen.getByLabelText('回答入力')).toBeTruthy();
+  });
+
   it('スタート画面の称号表に、ベストの位置を印として出す', async () => {
     const user = await startGame();
     // 55文字を 20秒で → 約2.75文字/秒 → 「打鍵の達人」
@@ -426,9 +457,7 @@ describe('App のゲームフロー', () => {
       await answerCurrent(user);
     }
 
-    // 結果画面からスタート画面へは戻れないので、再マウントして確認する
-    cleanup();
-    renderApp(clock, storage);
+    await user.click(screen.getByRole('button', { name: /ホームに戻る/ }));
 
     const current = screen.getByTestId('rank-ladder-current');
     expect(current.textContent).toContain('打鍵の達人');

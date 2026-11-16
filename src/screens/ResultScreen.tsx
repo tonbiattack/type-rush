@@ -27,6 +27,8 @@ type Props = {
   onRetrySameSet: () => void;
   /** 新しい5問で再挑戦 */
   onRetryNewSet: () => void;
+  /** スタート画面へ戻る */
+  onGoHome: () => void;
 };
 
 export function ResultScreen({
@@ -41,6 +43,7 @@ export function ResultScreen({
   now,
   onRetrySameSet,
   onRetryNewSet,
+  onGoHome,
 }: Props) {
   const formatted = formatStats(stats);
   const mountedAt = useRef(now());
@@ -205,6 +208,18 @@ export function ResultScreen({
           className="inline-flex w-full items-baseline justify-between gap-6 border border-ink-3 px-5 py-3.5 text-left text-ink-2 transition-colors hover:border-ink hover:text-ink sm:w-auto sm:min-w-[12rem]"
         >
           <span className="text-base font-bold">別の問題で</span>
+        </button>
+
+        {/* 記録はこの画面を出した時点で保存済み。戻るだけなので、再挑戦より控えめな見た目にする。 */}
+        <button
+          type="button"
+          onClick={onGoHome}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && event.repeat) event.preventDefault();
+          }}
+          className="inline-flex w-full items-baseline justify-between gap-6 border border-rule px-5 py-3.5 text-left text-ink-2 transition-colors hover:border-ink hover:text-ink sm:w-auto sm:min-w-[10rem]"
+        >
+          <span className="text-base font-bold">ホームに戻る</span>
         </button>
       </div>
       <p className="mt-2 text-note leading-relaxed text-ink-3">
