@@ -225,6 +225,11 @@ async function main() {
   await sleep(500);
   await shoot(cdp, 'home-after-result', 1280, 1000);
 
+  // 共有リンクで開いたときのスタート画面
+  await cdp.send('Page.navigate', { url: `${baseUrl}?seed=abc123&mix=short` });
+  await sleep(1200);
+  await shoot(cdp, 'start-shared', 1280, 1000);
+
   child.kill();
 }
 

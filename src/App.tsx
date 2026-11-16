@@ -17,6 +17,8 @@ import {
   randomSeed,
   seedFromString,
 } from './game/selection';
+import { buildShareText, buildShareUrl, pageUrl, readSharedSet } from './game/share';
+import { rankFor } from './game/rank';
 import {
   bestByMix,
   findBest,
@@ -95,6 +97,13 @@ export default function App({
     countdownMode === 'retry'
       ? Math.min(RETRY_COUNTDOWN_TOTAL_MS, countdownTotalMs)
       : countdownTotalMs;
+  /**
+   * 共有リンクから開いたときのセット。
+   * 受け取った人が同じ5問を遊べるように、スタートでこのセットを使う。
+   */
+  const [sharedSeed, setSharedSeed] = useState<string | null>(null);
+  /** 共有ボタンの結果。コピーできたか、できなかったか */
+  const [shareState, setShareState] = useState<'idle' | 'copied' | 'failed'>('idle');
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const composingRef = useRef(false);
@@ -162,6 +171,15 @@ export default function App({
     [],
   );
 
+  // 共有リンク（?seed=...&mix=...）から開かれたら、そのセットを次のプレイに使う。
+  // URL は消さない（リロードやブックマークでも同じセットを遊べるようにする）。
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const shared = readSharedSet(window.location.search);
+    if (shared.seed) setSharedSeed(shared.seed);
+    if (shared.mix) setMix(shared.mix);
+  }, []);
+
   const showPasteWarning = () => {
     setPasteWarning(true);
     if (warningTimerRef.current !== null) window.clearTimeout(warningTimerRef.current);
@@ -178,7 +196,8 @@ export default function App({
   const start = (options: { seed?: string; mix?: MixMode; mode?: CountdownMode } = {}) => {
     const nextMix = options.mix ?? mix;
     // 初回もシード経由で選ぶ。そうしないと「同じセット」を再現できない。
-    const nextSeed = options.seed ?? formatSeed(randomSeed(random));
+    // 共有リンクから来たときは、そのセットをそのまま使う（受け取った人が同じ5問を遊べる）。
+    const nextSeed = options.seed ?? sharedSeed ?? formatSeed(randomSeed(random));
     const selectedPool = poolFor(pool, nextMix);
     const problems = pickProblemsWithSeed(
       selectedPool,
@@ -188,7 +207,10 @@ export default function App({
 
     setMix(nextMix);
     setSeed(nextSeed);
+    // 共有されたセットは1回使ったら解除する。2回目からは新しい5問にする。
+    setSharedSeed(null);
     setNewBest(null);
+    setShareState('idle');
     setPasteWarning(false);
     composingRef.current = false;
     compositionEndedAtRef.current = null;
@@ -229,10 +251,39 @@ export default function App({
     updateGame(null);
     setSeed(null);
     setNewBest(null);
+    setShareState('idle');
     setPasteWarning(false);
     setCountdownFrom(null);
     composingRef.current = false;
     compositionEndedAtRef.current = null;
+  };
+
+  /**
+   * スコアを共有する。
+   * クリップボードが使えない環境（http や権限なし）でも詰まらないよう、
+   * 失敗したら「URL をコピーできませんでした」と出して手で選べる状態にする。
+   */
+  const shareScore = async () => {
+    const current = gameRef.current;
+    if (!current || current.status !== 'result') return;
+
+    const stats = summarize(current);
+    const url = buildShareUrl(pageUrl(), { seed, mix });
+    const text = buildShareText({
+      elapsedMs: stats.elapsedMs,
+      charactersPerSecond: stats.charactersPerSecond,
+      rankLabel: rankFor(stats.charactersPerSecond).label,
+      mixLabel: MIX_LABELS[mix],
+      problemCount: current.problems.length,
+      url,
+    });
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setShareState('copied');
+    } catch {
+      setShareState('failed');
+    }
   };
 
   const handleChange = (value: string) => {
@@ -340,6 +391,7 @@ export default function App({
               problemCount={problemsPerGame}
               mixLabels={MIX_LABELS}
               difficulties={DIFFICULTIES}
+              sharedSeed={sharedSeed}
               onMixChange={setMix}
               onStart={() => start({ mix })}
             />
@@ -388,6 +440,8 @@ export default function App({
               onRetrySameSet={retrySameSet}
               onRetryNewSet={retryNewSet}
               onGoHome={goHome}
+              onShare={shareScore}
+              shareState={shareState}
             />
           ) : null}
         </main>

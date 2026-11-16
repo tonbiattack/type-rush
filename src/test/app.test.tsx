@@ -2,6 +2,7 @@ import { act, cleanup, fireEvent, render, screen, within } from '@testing-librar
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../App';
+import { pickProblemsWithSeed, seedFromString } from '../game/selection';
 import type { Problem } from '../game/types';
 
 const POOL: Problem[] = [
@@ -461,6 +462,70 @@ describe('App のゲームフロー', () => {
 
     const current = screen.getByTestId('rank-ladder-current');
     expect(current.textContent).toContain('打鍵の達人');
+  });
+
+  it('スコアをコピーすると、タイムと共有 URL がクリップボードに入る', async () => {
+    const user = await startGame();
+    for (let index = 0; index < 5; index += 1) {
+      clock.now = 1000 + (index + 1) * 2000;
+      await answerCurrent(user);
+    }
+
+    // userEvent.setup() が navigator.clipboard を差し替えるので、その後に上書きする
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+    });
+
+    await user.click(screen.getByRole('button', { name: /スコアをコピー/ }));
+
+    expect(writeText).toHaveBeenCalledTimes(1);
+    const text = writeText.mock.calls[0][0] as string;
+    expect(text).toContain('Type Rush 8.00秒');
+    expect(text).toContain('文字/秒');
+    expect(text).toContain('seed=');
+    expect(text).toContain('mix=');
+    expect(screen.getByTestId('share-status').textContent).toMatch(/コピーしました/);
+  });
+
+  it('クリップボードが使えないときは、その旨を出す', async () => {
+    const user = await startGame();
+    for (let index = 0; index < 5; index += 1) {
+      clock.now = 1000 + (index + 1) * 2000;
+      await answerCurrent(user);
+    }
+
+    Object.defineProperty(navigator, 'clipboard', {
+      value: {
+        writeText: vi.fn().mockRejectedValue(new Error('denied')),
+      },
+      configurable: true,
+    });
+
+    await user.click(screen.getByRole('button', { name: /スコアをコピー/ }));
+
+    expect(screen.getByTestId('share-status').textContent).toMatch(/コピーできませんでした/);
+  });
+
+  it('共有リンクから開くと、そのセットで始まる', async () => {
+    window.history.replaceState({}, '', '/?seed=abc123&mix=short');
+
+    const user = userEvent.setup();
+    renderApp(clock, storage);
+
+    // 押す前に「共有された5問を出す」と分かる
+    expect(screen.getByTestId('shared-set').textContent).toContain('abc123');
+
+    await user.click(screen.getByRole('button', { name: /スタート/ }));
+    await skipCountdown();
+
+    // 同じシードなら同じ5問が同じ順で出る
+    const expected = pickProblemsWithSeed(POOL, 5, seedFromString('abc123'));
+    expect(currentPrompt()).toBe(expected[0].prompt);
+
+    // 2回目からは共有セットを使わない（案内も消える）
+    window.history.replaceState({}, '', '/');
   });
 
   it('リロードでゲームは初期化され、ベストは保持される', async () => {
