@@ -53,4 +53,41 @@ describe('isBlockedInputType', () => {
     expect(isBlockedInputType('deleteContentBackward')).toBe(false);
     expect(isBlockedInputType('')).toBe(false);
   });
+
+  it('ドラッグ・ヤンク経由の入力も拒否する', () => {
+    expect(isBlockedInputType('insertFromYank')).toBe(true);
+    expect(isBlockedInputType('paste')).toBe(true);
+    expect(isBlockedInputType('drop')).toBe(true);
+  });
+
+  it('変換・確定・改行は拒否しない（通常の入力として通す）', () => {
+    expect(isBlockedInputType('insertCompositionText')).toBe(false);
+    expect(isBlockedInputType('insertLineBreak')).toBe(false);
+    expect(isBlockedInputType('insertParagraph')).toBe(false);
+  });
+});
+
+describe('IME 変換と提出の組み合わせ', () => {
+  it('変換中に Enter を押しても、確定後に押し直せば提出できる', () => {
+    // 変換中の Enter はブラウザの確定に任せる
+    expect(shouldSubmitOnEnter({ key: 'Enter', now: 1000, isComposing: true })).toBe(false);
+    // 変換が終わって猶予時間を過ぎた Enter は提出になる
+    expect(
+      shouldSubmitOnEnter({
+        key: 'Enter',
+        now: 1000 + COMPOSITION_GRACE_MS,
+        compositionEndedAt: 1000,
+      }),
+    ).toBe(true);
+  });
+
+  it('変換中でも keyCode 229 が付いていれば二重に弾く', () => {
+    expect(
+      shouldSubmitOnEnter({ key: 'Enter', now: 1000, isComposing: true, keyCode: 229 }),
+    ).toBe(false);
+  });
+
+  it('compositionEndedAt が null なら猶予時間は効かない', () => {
+    expect(shouldSubmitOnEnter({ key: 'Enter', now: 1000, compositionEndedAt: null })).toBe(true);
+  });
 });
