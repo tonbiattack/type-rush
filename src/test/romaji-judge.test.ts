@@ -69,7 +69,7 @@ describe('ローマ字入力の判定', () => {
     expect(result.similarity).toBeGreaterThan(0);
   });
 
-  it('全112問がローマ字で合格する', () => {
+  it('全問がローマ字で合格する', () => {
     for (const problem of PROBLEMS) {
       const result = multiScriptJudge.evaluate(problem.prompt, toRomaji(problem.prompt));
       expect(result.passed, `${problem.id}: ${problem.prompt}`).toBe(true);
@@ -77,11 +77,32 @@ describe('ローマ字入力の判定', () => {
     }
   });
 
-  it('全112問がひらがなでも合格する', () => {
+  it('全問がひらがなでも合格する', () => {
     for (const problem of PROBLEMS) {
       const result = multiScriptJudge.evaluate(problem.prompt, problem.prompt);
       expect(result.passed, `${problem.id}: ${problem.prompt}`).toBe(true);
       expect(result.matchedAs).toBe('kana');
+    }
+  });
+
+  it('促音・拗音・「ん」を含む問題もローマ字で合格する', () => {
+    // 変換が難しい文字を含む問題だけを抜き出して確かめる。
+    const tricky = PROBLEMS.filter((problem) => /[っゃゅょんー]/.test(problem.prompt));
+    expect(tricky.length).toBeGreaterThanOrEqual(100);
+
+    for (const problem of tricky) {
+      const result = multiScriptJudge.evaluate(problem.prompt, toRomaji(problem.prompt));
+      expect(result.passed, `${problem.id}: ${problem.prompt}`).toBe(true);
+    }
+  });
+
+  it('ローマ字の区切り記号を全部入れても合格する', () => {
+    // ん のあとに区切りを入れる流派、長音をハイフンで打つ流派の両方を許す。
+    for (const problem of PROBLEMS.slice(0, 60)) {
+      const romaji = toRomaji(problem.prompt);
+      const withMarks = romaji.replace(/n/g, "n'").replace(/-/g, '');
+      const result = multiScriptJudge.evaluate(problem.prompt, withMarks);
+      expect(result.passed, `${problem.id}: ${withMarks}`).toBe(true);
     }
   });
 

@@ -60,6 +60,47 @@ describe('難易度の帯', () => {
       expect(problemsForDifficulty(PROBLEMS, difficulty).length).toBeGreaterThanOrEqual(5);
     }
   });
+
+  it('帯ごとの問題数が大きく偏っていない', () => {
+    // 帯によって出題の選びやすさが変わると、同じ帯を選んだときの
+    // 体感（同じ問題がまた出る）が変わってしまう。
+    const counts = DIFFICULTIES.map(
+      (difficulty) => problemsForDifficulty(PROBLEMS, difficulty).length,
+    );
+    const smallest = Math.min(...counts);
+    const largest = Math.max(...counts);
+    expect(smallest).toBeGreaterThanOrEqual(60);
+    expect(largest / smallest).toBeLessThan(1.5);
+  });
+
+  it('帯ごとに5問を選んでも重複しない', () => {
+    for (const difficulty of DIFFICULTIES) {
+      const pool = problemsForDifficulty(PROBLEMS, difficulty);
+      const picked = pickProblemsWithSeed(pool, 5, 12345);
+      expect(new Set(picked.map((problem) => problem.id)).size).toBe(5);
+      for (const problem of picked) {
+        expect(difficultyOf(problem.prompt)).toBe(difficulty);
+      }
+    }
+  });
+
+  it('帯を固定しても、シードが違えば別の5問になる', () => {
+    for (const difficulty of DIFFICULTIES) {
+      const pool = problemsForDifficulty(PROBLEMS, difficulty);
+      const first = pickProblemsWithSeed(pool, 5, 1);
+      const second = pickProblemsWithSeed(pool, 5, 2);
+      expect(first.map((problem) => problem.id)).not.toEqual(second.map((problem) => problem.id));
+    }
+  });
+
+  it('帯を固定しても、同じシードなら同じ5問が同じ順で出る', () => {
+    for (const difficulty of DIFFICULTIES) {
+      const pool = problemsForDifficulty(PROBLEMS, difficulty);
+      const first = pickProblemsWithSeed(pool, 5, 777);
+      const second = pickProblemsWithSeed(pool, 5, 777);
+      expect(first.map((problem) => problem.id)).toEqual(second.map((problem) => problem.id));
+    }
+  });
 });
 
 describe('シード付きの抽選', () => {

@@ -75,7 +75,7 @@ describe('ひらがな → ローマ字', () => {
   });
 
   it('チャンクの kana を連結すると元に戻る', () => {
-    for (const problem of PROBLEMS.slice(0, 20)) {
+    for (const problem of PROBLEMS) {
       const joined = toRomajiChunks(problem.prompt)
         .map((chunk) => chunk.kana)
         .join('');
@@ -93,6 +93,61 @@ describe('ひらがな → ローマ字', () => {
     for (const problem of PROBLEMS) {
       const romaji = toRomaji(problem.prompt);
       expect(romaji).not.toMatch(/[\u3041-\u3096]/);
+    }
+  });
+
+  it('促音を含む問題は、次の子音が重なったローマ字になる', () => {
+    const withSokuon = PROBLEMS.filter((problem) => problem.prompt.includes('っ'));
+    expect(withSokuon.length).toBeGreaterThanOrEqual(40);
+
+    for (const problem of withSokuon) {
+      const romaji = toRomaji(problem.prompt);
+      // 「っ」の位置に子音が重なる（xtu は変換できなかったときの逃げ道）
+      expect(romaji).not.toContain('xtu');
+    }
+  });
+
+  it('拗音を含む問題は、2文字ぶんのローマ字が1チャンクにまとまる', () => {
+    const withYoon = PROBLEMS.filter((problem) => /[ゃゅょ]/.test(problem.prompt));
+    expect(withYoon.length).toBeGreaterThanOrEqual(40);
+
+    for (const problem of withYoon) {
+      const chunks = toRomajiChunks(problem.prompt);
+      for (const chunk of chunks) {
+        if (/[ゃゅょ]/.test(chunk.kana)) {
+          // 拗音は必ず2文字で1チャンク
+          expect(Array.from(chunk.kana)).toHaveLength(2);
+          expect(chunk.romaji).not.toMatch(/^x/);
+        }
+      }
+    }
+  });
+
+  it('「ん」のあとに母音・や行が来る問題は n\' で区切る', () => {
+    const needsApostrophe = PROBLEMS.filter((problem) =>
+      /ん[あいうえおやゆよぁぃぅぇぉ]/.test(problem.prompt),
+    );
+
+    for (const problem of needsApostrophe) {
+      expect(toRomaji(problem.prompt)).toContain("n'");
+    }
+  });
+
+  it('長音（ー）を含む問題はハイフンになる', () => {
+    const withLong = PROBLEMS.filter((problem) => problem.prompt.includes('ー'));
+    expect(withLong.length).toBeGreaterThanOrEqual(40);
+
+    for (const problem of withLong) {
+      expect(toRomaji(problem.prompt)).toContain('-');
+    }
+  });
+
+  it('ローマ字に変換した結果が、元のひらがなより短くならない', () => {
+    // 1文字のひらがなは最低1文字のローマ字になる（変換漏れの検出）
+    for (const problem of PROBLEMS) {
+      const kanaLength = Array.from(problem.prompt).length;
+      const romajiLength = Array.from(toRomaji(problem.prompt)).length;
+      expect(romajiLength).toBeGreaterThanOrEqual(kanaLength);
     }
   });
 });

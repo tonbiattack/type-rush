@@ -189,8 +189,8 @@ describe('similarityJudge の合否境界', () => {
 });
 
 describe('問題データ', () => {
-  it('100問以上ある', () => {
-    expect(PROBLEMS.length).toBeGreaterThanOrEqual(100);
+  it('200問以上ある', () => {
+    expect(PROBLEMS.length).toBeGreaterThanOrEqual(200);
   });
 
   it('AIへの指示でありそうな問題が半分以上ある', () => {
@@ -222,6 +222,52 @@ describe('問題データ', () => {
       expect(length).toBeGreaterThanOrEqual(20);
       expect(length).toBeLessThanOrEqual(40);
     }
+  });
+
+  it('促音・拗音・「ん」を含む問題がそれぞれ十分にある', () => {
+    // 打鍵の練習として、詰まる音（っ）・ねじれる音（ゃゅょ）・撥音（ん）が
+    // どれかに偏らず入っていることを確かめる。
+    const count = (pattern: RegExp) =>
+      PROBLEMS.filter((problem) => pattern.test(problem.prompt)).length;
+
+    expect(count(/っ/)).toBeGreaterThanOrEqual(40);
+    expect(count(/[ゃゅょ]/)).toBeGreaterThanOrEqual(40);
+    expect(count(/ん/)).toBeGreaterThanOrEqual(100);
+  });
+
+  it('書き出しが「この」ばかりになっていない', () => {
+    // 同じ書き出しが続くと、文を読まずに形で覚えられてしまう。
+    const kono = PROBLEMS.filter((problem) => problem.prompt.startsWith('この')).length;
+    expect(kono / PROBLEMS.length).toBeLessThan(0.5);
+  });
+
+  it('表現だけ差し替えた実質重複がない', () => {
+    // 文字列の近さで見る。0.8 以上は「ほぼ同じ文」とみなす。
+    const similarity = (a: string, b: string) => {
+      const left = Array.from(a);
+      const right = Array.from(b);
+      let previous = Array.from({ length: right.length + 1 }, (_, index) => index);
+      for (let i = 1; i <= left.length; i += 1) {
+        const current = new Array<number>(right.length + 1);
+        current[0] = i;
+        for (let j = 1; j <= right.length; j += 1) {
+          const cost = left[i - 1] === right[j - 1] ? 0 : 1;
+          current[j] = Math.min(previous[j] + 1, current[j - 1] + 1, previous[j - 1] + cost);
+        }
+        previous = current;
+      }
+      return 1 - previous[right.length] / Math.max(left.length, right.length);
+    };
+
+    const tooClose: string[] = [];
+    for (let i = 0; i < PROBLEMS.length; i += 1) {
+      for (let j = i + 1; j < PROBLEMS.length; j += 1) {
+        if (similarity(PROBLEMS[i].prompt, PROBLEMS[j].prompt) >= 0.8) {
+          tooClose.push(`${PROBLEMS[i].id} / ${PROBLEMS[j].id}`);
+        }
+      }
+    }
+    expect(tooClose).toEqual([]);
   });
 });
 
